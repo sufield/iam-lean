@@ -1,0 +1,24 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ExternalRole",
+      "Effect": "Allow",
+      "Principal": {"AWS": "arn:aws:iam::444455556666:role/TheirRole"},
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::shared-bucket/*"
+    },
+    {
+      "Sid": "ExternalRootFenced",
+      "Effect": "Allow",
+      "Principal": {"AWS": "arn:aws:iam::555566667777:root"},
+      "Action": "s3:PutObject",
+      "Resource": "arn:aws:s3:::shared-bucket/*",
+      "Condition": {
+        "ArnLike": {
+          "aws:SourceArn": "arn:aws:s3:::their-bucket"
+        }
+      }
+    }
+  ]
+}

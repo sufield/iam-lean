@@ -1,0 +1,16 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "VPCEOnly",
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::my-bucket/*",
+      "Condition": {
+        "StringLike": {
+          "aws:SourceVpce": "vpce-0a*"
+        }
+      }
+    }
+  ]
+}

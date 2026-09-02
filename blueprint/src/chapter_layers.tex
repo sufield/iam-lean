@@ -1,0 +1,67 @@
+\chapter{Control Layers}\label{chap:layers}
+
+Control layers (SCPs, RCPs, permission boundaries) add additional
+deny gates on top of the base policy evaluation.  The key property:
+layers can only block, never grant.
+
+\section{Definitions}
+
+\begin{definition}[allowsLayered]\label{def:allowsLayered}
+\lean{allowsLayered}
+\leanok
+Evaluates a policy with SCP, RCP, and permission-boundary layers.
+Returns an \texttt{allowed} field (true only if the base \texttt{allows}
+is true and no layer blocks) and a \texttt{blocked} list.
+\end{definition}
+
+\begin{definition}[noLayers]\label{def:noLayers}
+\lean{noLayers}
+\leanok
+The empty layer set: no SCPs, no RCPs, no boundary.
+\end{definition}
+
+\section{Theorems}
+
+\begin{theorem}[evalLayers\_noLayers\_blocked]\label{thm:evalLayers_noLayers_blocked}
+\lean{evalLayers_noLayers_blocked}
+\leanok
+With no layers, the blocked list is empty.
+\end{theorem}
+
+\begin{theorem}[evalLayers\_blocked\_noContext\_empty]\label{thm:evalLayers_blocked_noContext_empty}
+\uses{thm:evalCond_noContext_tu}
+\lean{evalLayers_blocked_noContext_empty}
+\leanok
+If no layer blocks under a concrete context, no layer blocks under
+\texttt{noContext} either.  Relies on the fact that Deny conditions
+evaluated as T under \texttt{noContext} imply T under any context
+(preventing false blocks), and Allow conditions never evaluate to F
+under \texttt{noContext} (preventing false no-allow blocks).
+\end{theorem}
+
+\begin{theorem}[layers\_narrow]\label{thm:layers_narrow}
+\lean{layers_narrow}
+\leanok
+If \texttt{allowsLayered} allows a request, then the base
+\texttt{allows} also allows it.  Layers never grant access the
+base policy did not.
+\end{theorem}
+
+\begin{theorem}[layer\_add\_monotone]\label{thm:layer_add_monotone}
+\uses{thm:evalLayers_noLayers_blocked}
+\lean{layer_add_monotone}
+\leanok
+If the base policy allows a request, then \texttt{allowsLayered}
+with \texttt{noLayers} also allows it.  The empty layer set is
+transparent.
+\end{theorem}
+
+\begin{theorem}[layered\_nocontext\_conservative]\label{thm:layered_nocontext_conservative}
+\uses{thm:layers_narrow, cor:allows_nocontext_conservative, thm:evalLayers_blocked_noContext_empty}
+\lean{layered_nocontext_conservative}
+\leanok
+Layered no-context conservatism: if \texttt{allowsLayered} allows
+under any context, it allows under \texttt{noContext}.  Combines
+\texttt{layers\_narrow}, \texttt{allows\_nocontext\_conservative},
+and \texttt{evalLayers\_blocked\_noContext\_empty}.
+\end{theorem}

@@ -1,0 +1,5 @@
+{
+  "needs": [
+    {"action": "s3:Get*", "resource": "arn:aws:s3:::app-logs"}
+  ]
+}

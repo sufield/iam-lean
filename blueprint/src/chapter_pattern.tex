@@ -1,0 +1,76 @@
+\chapter{Pattern Matching}\label{chap:pattern}
+
+Pattern matching underpins action and resource comparisons.
+The glob matcher \texttt{matchPattern} supports \texttt{*} (any sequence)
+and \texttt{?} (any single character) wildcards.  Action matching
+pre-lowers both arguments via \texttt{toLowerStr}; resource matching
+is case-sensitive.
+
+\section{Definitions}
+
+\begin{definition}[toLowerStr]\label{def:toLowerStr}
+\lean{toLowerStr}
+\leanok
+Maps every character in a string through \texttt{Char.toLower}.
+\end{definition}
+
+\begin{definition}[matchPatternGo]\label{def:matchPatternGo}
+\lean{matchPatternGo}
+\leanok
+Recursive glob matcher on character lists.  Uses well-founded
+recursion on \texttt{(ps.length + vs.length, vs.length)}.
+\end{definition}
+
+\begin{definition}[matchPattern]\label{def:matchPattern}
+\lean{matchPattern}
+\leanok
+Glob match: converts both strings to character lists and delegates
+to \texttt{matchPatternGo}.
+\end{definition}
+
+\begin{definition}[ciEq]\label{def:ciEq}
+\lean{ciEq}
+\leanok
+Case-insensitive string equality: \texttt{toLowerStr s₁ = toLowerStr s₂}.
+\end{definition}
+
+\section{Lemmas}
+
+\begin{lemma}[ciEq\_toLowerStr]\label{lem:ciEq_toLowerStr}
+\lean{ciEq_toLowerStr}
+\leanok
+If \texttt{ciEq s s' = true} then \texttt{toLowerStr s = toLowerStr s'}.
+\end{lemma}
+
+\begin{lemma}[matchPatternGo\_literal\_eq]\label{lem:matchPatternGo_literal_eq}
+\lean{matchPatternGo_literal_eq}
+\leanok
+A wildcard-free pattern that matches implies the character lists are equal.
+\end{lemma}
+
+\begin{theorem}[matchPattern\_literal\_mp]\label{thm:matchPattern_literal_mp}
+\uses{lem:matchPatternGo_literal_eq}
+\lean{matchPattern_literal_mp}
+\leanok
+A wildcard-free \texttt{matchPattern} match implies \texttt{ciEq}.
+\end{theorem}
+
+\begin{theorem}[matchPattern\_cs\_literal\_eq]\label{thm:matchPattern_cs_literal_eq}
+\uses{lem:matchPatternGo_literal_eq}
+\lean{matchPattern_cs_literal_eq}
+\leanok
+A wildcard-free case-sensitive \texttt{matchPattern} match implies string equality.
+\end{theorem}
+
+\begin{lemma}[toLower\_eq\_star]\label{lem:toLower_eq_star}
+\lean{toLower_eq_star}
+\leanok
+\texttt{Char.toLower c = '*'} implies \texttt{c = '*'}.
+Proved via \texttt{UInt32.toNat} arithmetic and \texttt{omega}.
+\end{lemma}
+
+\begin{lemma}[toLower\_eq\_question]\label{lem:toLower_eq_question}
+\lean{toLower_eq_question}
+\leanok
+\texttt{Char.toLower c = '?'} implies \texttt{c = '?'}.
+\end{lemma}

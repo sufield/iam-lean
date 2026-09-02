@@ -1,0 +1,17 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AdminAccess",
+      "Effect": "Allow",
+      "Action": "*",
+      "Resource": "*"
+    },
+    {
+      "Sid": "S3Full",
+      "Effect": "Allow",
+      "Action": ["s3:*"],
+      "Resource": "*"
+    }
+  ]
+}

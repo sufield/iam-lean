@@ -1,0 +1,17 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyGuardrail",
+      "Effect": "Deny",
+      "NotAction": ["iam:*", "organizations:*"],
+      "Resource": "*"
+    },
+    {
+      "Sid": "NotActionScoped",
+      "Effect": "Allow",
+      "NotAction": ["sts:*"],
+      "Resource": "arn:aws:s3:::app-data/*"
+    }
+  ]
+}

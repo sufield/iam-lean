@@ -1,0 +1,12 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "BadCondA",
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": "*",
+      "Condition": "not-an-object"
+    }
+  ]
+}

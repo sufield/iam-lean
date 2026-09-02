@@ -1,0 +1,23 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowS3Get",
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": "*",
+      "Principal": {
+        "AWS": "arn:aws:iam::444455556666:root"
+      }
+    },
+    {
+      "Sid": "AllowDDBGet",
+      "Effect": "Allow",
+      "Action": "dynamodb:GetItem",
+      "Resource": "*",
+      "Principal": {
+        "AWS": "arn:aws:iam::444455556666:root"
+      }
+    }
+  ]
+}

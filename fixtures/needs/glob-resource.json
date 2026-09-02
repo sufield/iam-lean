@@ -1,0 +1,6 @@
+{
+  "needs": [
+    {"action": "s3:ListBucket", "resource": "arn:aws:s3:::app-logs"},
+    {"action": "s3:GetObject", "resource": "arn:aws:s3:::app-logs/*"}
+  ]
+}

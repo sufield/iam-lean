@@ -1,0 +1,10 @@
+web/
+print/
+src/*.aux
+src/*.log
+src/*.bbl
+src/*.blg
+src/*.fdb_latexmk
+src/*.fls
+src/*.synctex.gz
+src/*.paux

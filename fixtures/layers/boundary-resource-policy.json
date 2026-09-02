@@ -1,0 +1,14 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowBobS3Get",
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": "*",
+      "Principal": {
+        "AWS": "arn:aws:iam::111122223333:user/bob"
+      }
+    }
+  ]
+}

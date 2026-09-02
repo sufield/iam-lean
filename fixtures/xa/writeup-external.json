@@ -1,0 +1,24 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ExternalRoot",
+      "Effect": "Allow",
+      "Principal": {"AWS": "arn:aws:iam::444455556666:root"},
+      "Action": ["codebuild:StartBuild", "codebuild:BatchGetBuilds"],
+      "Resource": "arn:aws:codebuild:us-east-1:111122223333:project/MyProject"
+    },
+    {
+      "Sid": "ForeignOrg",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::shared-bucket/*",
+      "Condition": {
+        "StringEquals": {
+          "aws:PrincipalOrgID": "o-foreign999"
+        }
+      }
+    }
+  ]
+}
