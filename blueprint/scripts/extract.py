@@ -65,9 +65,10 @@ def detect_github_base() -> str:
             ["git", "remote", "get-url", "origin"],
             cwd=REPO_ROOT, text=True, stderr=subprocess.DEVNULL
         ).strip()
-        # git@github.com:user/repo.git -> https://github.com/user/repo
+        # git@github.com-alias:user/repo.git -> https://github.com/user/repo
         if url.startswith("git@"):
             url = url.replace(":", "/").replace("git@", "https://")
+            url = re.sub(r'https://github\.com[^/]*/', 'https://github.com/', url, count=1)
         url = url.removesuffix(".git")
         return url
     except Exception:

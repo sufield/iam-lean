@@ -8,4 +8,5 @@ src = "src"
 build-dir = "../site"
 
 [output.html]
-git-repository-url = "https://github.com/bparanj/iam-explainer"
+git-repository-url = "https://github.com/sufield/iam-lean"
+additional-css = ["src/custom.css"]
