@@ -203,13 +203,14 @@ def parse_lean_file(path: Path) -> list[Decl]:
 
 def collect_dependencies(decls: list[Decl]) -> dict[str, list[str]]:
     """Build dependency edges by scanning proof bodies for references."""
-    name_set = {d.fqn for d in decls} | {d.name for d in decls}
+    # Only track theorem/lemma targets with names long enough to avoid
+    # false positives (skip 1-3 char names like Tri, Nat, Bool)
+    targets = [d for d in decls if len(d.name) >= 4]
     deps: dict[str, list[str]] = {}
 
     for d in decls:
         if d.kind not in ("theorem", "lemma"):
             continue
-        # Read the proof body
         path = REPO_ROOT / d.file
         lines = path.read_text().split("\n")
         body_start = d.line - 1
@@ -221,10 +222,10 @@ def collect_dependencies(decls: list[Decl]) -> dict[str, list[str]]:
         body = "\n".join(lines[body_start:body_end])
 
         found = set()
-        for other in decls:
+        for other in targets:
             if other.fqn == d.fqn:
                 continue
-            # Check for bare name or fqn in body
+            # Match as word boundary — fqn first, then bare name
             for n in [other.fqn, other.name]:
                 if re.search(r'\b' + re.escape(n) + r'\b', body):
                     found.add(other.fqn)
@@ -281,51 +282,66 @@ def write_catalog(all_decls: list[Decl], branch: str):
 
 
 def write_graph(all_decls: list[Decl], deps: dict[str, list[str]]):
-    """Write the Mermaid dependency graph page."""
-    out = BOOK_SRC / "graph.md"
+    """Write dependency graph as pre-rendered SVG via Graphviz dot."""
+    import subprocess
 
-    # Build node id mapping (sanitize for Mermaid)
-    def node_id(fqn: str) -> str:
-        return fqn.replace(".", "_")
-
-    theorems_and_defs = [d for d in all_decls if d.kind in ("theorem", "lemma", "def")]
-    # Only include nodes that appear in deps (as source or target)
-    dep_nodes = set()
+    edge_nodes = set()
     for src, targets in deps.items():
         if targets:
-            dep_nodes.add(src)
-            dep_nodes.update(targets)
+            edge_nodes.add(src)
+            edge_nodes.update(targets)
 
-    lines = [
-        "# Dependency Graph\n",
-        "Nodes: 🟢 proved, 🟡 sorry, ⚪ definition. Click to navigate.\n",
-        "```mermaid",
-        "graph TD",
+    fqn_to_decl = {d.fqn: d for d in all_decls}
+
+    colors = {
+        "proved": ("#22c55e", "#166534", "white"),
+        "sorry": ("#eab308", "#a16207", "white"),
+        "definition": ("#9ca3af", "#4b5563", "white"),
+    }
+
+    dot_lines = [
+        'digraph deps {',
+        '  rankdir=LR;',
+        '  node [shape=box, style="filled,rounded", fontname="sans-serif", fontsize=10];',
+        '  edge [color="#64748b"];',
     ]
 
-    # Style classes
-    lines.append("    classDef proved fill:#22c55e,stroke:#166534,color:#fff")
-    lines.append("    classDef sorry fill:#eab308,stroke:#a16207,color:#fff")
-    lines.append("    classDef defn fill:#9ca3af,stroke:#4b5563,color:#fff")
-
-    # Nodes
-    for d in theorems_and_defs:
-        if d.fqn not in dep_nodes and d.fqn not in deps:
+    for fqn in sorted(edge_nodes):
+        d = fqn_to_decl.get(fqn)
+        if not d:
             continue
-        nid = node_id(d.fqn)
-        label = d.name
-        cls = "proved" if d.status == "proved" else ("sorry" if d.status == "sorry" else "defn")
-        mod_slug = d.module.replace(".", "_")
-        lines.append(f'    {nid}["{label}"]')
-        lines.append(f"    class {nid} {cls}")
+        nid = fqn.replace(".", "_")
+        fill, stroke, font = colors[d.status]
+        dot_lines.append(
+            f'  {nid} [label="{d.name}", fillcolor="{fill}", color="{stroke}", fontcolor="{font}"];'
+        )
 
-    # Edges
-    for src, targets in deps.items():
+    for src, targets in sorted(deps.items()):
         for tgt in targets:
-            lines.append(f"    {node_id(src)} --> {node_id(tgt)}")
+            if src in edge_nodes and tgt in edge_nodes:
+                dot_lines.append(f"  {src.replace('.', '_')} -> {tgt.replace('.', '_')};")
 
-    lines.append("```")
-    out.write_text("\n".join(lines))
+    dot_lines.append("}")
+    dot_src = "\n".join(dot_lines)
+
+    svg_path = BOOK_SRC / "graph.svg"
+    result = subprocess.run(
+        ["dot", "-Tsvg"], input=dot_src, capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        print(f"WARNING: dot failed: {result.stderr}", file=sys.stderr)
+        svg_path.write_text(f"<svg><text>Graph generation failed</text></svg>")
+    else:
+        svg_path.write_text(result.stdout)
+
+    out = BOOK_SRC / "graph.md"
+    out.write_text(
+        "# Dependency Graph\n\n"
+        "Nodes: 🟢 proved, 🟡 sorry, ⚪ definition.\n\n"
+        '<div style="overflow-x:auto">\n\n'
+        "![Dependency graph](graph.svg)\n\n"
+        "</div>\n"
+    )
 
 
 def write_summary(modules: list[str]):
