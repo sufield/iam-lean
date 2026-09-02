@@ -1,0 +1,11 @@
+[book]
+title = "IAM Explainer — Formalization Blueprint"
+authors = ["Bala Paranj"]
+language = "en"
+src = "src"
+
+[build]
+build-dir = "../site"
+
+[output.html]
+git-repository-url = "https://github.com/bparanj/iam-explainer"

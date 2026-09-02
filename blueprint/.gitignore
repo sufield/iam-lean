@@ -1,10 +1,5 @@
-web/
-print/
-src/*.aux
-src/*.log
-src/*.bbl
-src/*.blg
-src/*.fdb_latexmk
-src/*.fls
-src/*.synctex.gz
-src/*.paux
+site/
+book/src/catalog.md
+book/src/graph.md
+book/src/SUMMARY.md
+book/src/modules/
