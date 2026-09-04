@@ -368,15 +368,31 @@ def write_graph(all_decls: list[Decl], deps: dict[str, list[str]]):
 def write_summary(modules: list[str]):
     """Write SUMMARY.md for mdBook."""
     out = BOOK_SRC / "SUMMARY.md"
+
+    seclib = sorted(m for m in modules if m.startswith("Seclib"))
+    iam = sorted(m for m in modules if m.startswith("IamExplainer"))
+    other = sorted(m for m in modules if m not in seclib and m not in iam)
+
     lines = [
         "# Summary\n",
         "[Theorem Catalog](catalog.md)",
         "[Dependency Graph](graph.md)\n",
-        "# Modules\n",
+        "# Vendor-Neutral Core (Seclib)\n",
     ]
-    for mod in sorted(modules):
+    for mod in seclib:
         slug = mod.replace(".", "_")
         lines.append(f"- [{mod}](modules/{slug}.md)")
+
+    lines.append("\n# AWS IAM Binding (IamExplainer)\n")
+    for mod in iam:
+        slug = mod.replace(".", "_")
+        lines.append(f"- [{mod}](modules/{slug}.md)")
+
+    if other:
+        lines.append("\n# Other\n")
+        for mod in other:
+            slug = mod.replace(".", "_")
+            lines.append(f"- [{mod}](modules/{slug}.md)")
 
     out.write_text("\n".join(lines))
 
