@@ -45,7 +45,7 @@ where
 
 def loadAccounts (path : String) : IO (List String) := do
   let contents ← IO.FS.readFile path
-  return contents.splitOn "\n" |>.map String.trim |>.filter (!·.isEmpty)
+  return contents.splitOn "\n" |>.map (·.trimAscii.toString) |>.filter (!·.isEmpty)
 
 def buildContext (opts : CliOpts) : IO Context := do
   let accts ← match opts.accounts with
@@ -141,7 +141,7 @@ def rcpServicesPath : String := "data/rcp-services.txt"
 
 def loadRcpServices : IO (List String) := do
   let contents ← IO.FS.readFile rcpServicesPath
-  return contents.splitOn "\n" |>.map String.trim |>.filter (!·.isEmpty)
+  return contents.splitOn "\n" |>.map (·.trimAscii.toString) |>.filter (!·.isEmpty)
 
 def runCan (opts : CliOpts) : IO UInt32 := do
   match opts.file with
