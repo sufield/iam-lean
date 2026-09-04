@@ -269,6 +269,16 @@ def write_catalog(all_decls: list[Decl], branch: str):
         f"**{proved}** proved · **{sorry}** sorry · **{total}** total\n",
     ]
 
+    MODULE_LABELS = {
+        "Seclib.Prim": "Allow / Deny / NotApplicable Logic (Seclib.Prim)",
+        "Seclib.Prim.Glob": "Action and Resource Pattern Matching (Seclib.Prim.Glob)",
+        "Seclib.Prim.Rule": "Statement Combining — Deny Overrides (Seclib.Prim.Rule)",
+        "Seclib.Domain.PolicySem": "Policy Evaluation Semantics (Seclib.Domain.PolicySem)",
+        "IamExplainer.Condition": "Condition Key Evaluation (IamExplainer.Condition)",
+        "IamExplainer.Layers": "SCPs, Permission Boundaries, and RCPs (IamExplainer.Layers)",
+        "IamExplainer.Proofs": "End-to-End IAM Authorization Proofs (IamExplainer.Proofs)",
+    }
+
     # Group by module
     from collections import OrderedDict
     by_module: dict[str, list[Decl]] = OrderedDict()
@@ -277,7 +287,8 @@ def write_catalog(all_decls: list[Decl], branch: str):
 
     for mod, mod_theorems in by_module.items():
         mod_slug = mod.replace(".", "_")
-        lines.append(f"## [{mod}](modules/{mod_slug}.md)\n")
+        label = MODULE_LABELS.get(mod, mod)
+        lines.append(f"## [{label}](modules/{mod_slug}.md)\n")
         lines.append("| Status | Name | Description |")
         lines.append("|--------|------|-------------|")
         for d in mod_theorems:
