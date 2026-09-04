@@ -1,3 +1,13 @@
+.content main {
+  max-width: 95%;
+}
+
 table {
   width: 100%;
+  text-align: left;
+}
+
+table th,
+table td {
+  text-align: left;
 }
