@@ -9,7 +9,8 @@ cargo install mdbook
 # Graphviz (for dependency graph)
 sudo apt install graphviz
 
-# Python 3.10+
+# Python 3.10+ (via uv or system python)
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
 ## Build
@@ -18,7 +19,7 @@ All commands run from the repo root (`iam-explainer/`):
 
 ```bash
 # 1. Extract declarations from Lean source
-python3 blueprint/scripts/extract.py
+uv run blueprint/scripts/extract.py
 
 # 2. Build the site
 cd blueprint/book && mdbook build
