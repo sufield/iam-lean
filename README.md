@@ -19,45 +19,6 @@ export PATH="$PWD/.lake/build/bin:$PATH"
 iamlean explain fixtures/writeup-wildcards.json
 ```
 
-## Commands
-
-### explain — Analyze a policy
-
-```sh
-# Identity policy — least-privilege checks
-iamlean explain fixtures/writeup-wildcards.json
-
-# Trust/resource policy — add context for scope classification
-iamlean explain fixtures/xa/writeup-trust.json \
-  --account 111122223333 \
-  --accounts fixtures/context/accounts.txt \
-  --org-id o-ours1234
-
-# Without context flags, scopes are UNVERIFIED (warnings, no findings)
-iamlean explain fixtures/xa/writeup-external.json
-```
-
-### grants — Show who gets access
-
-```sh
-# List every grant row with principal, scope, actions, and conditions
-iamlean grants fixtures/xa/writeup-trust.json \
-  --account 111122223333 \
-  --accounts fixtures/context/accounts.txt \
-  --org-id o-ours1234 \
-  --format json | jq '.grants[] | {principal, scope, actions}'
-```
-
-### Context flags
-
-All optional. Absent flags produce UNVERIFIED scope with a warning — never a finding.
-
-| Flag | Purpose |
-|---|---|
-| `--account <id>` | Owner of the policy document |
-| `--accounts <file>` | File with one account ID per line (known accounts) |
-| `--org-id o-xxxx` | Your AWS organization ID |
-
 ## Workflow: Analyze, Fix, Verify
 
 ```sh
@@ -182,3 +143,42 @@ The proofs guarantee that every fix iamlean suggests can only narrow the origina
 | `grants_complete` | Every allowed request is witnessed by an Allow statement — grant rows cannot miss an access path |
 
 These are mathematical proofs verified by Lean's type checker against the same `Policy`, `Statement`, and `allows` definitions the analyzer uses at runtime.
+
+## Commands
+
+### explain — Analyze a policy
+
+```sh
+# Identity policy — least-privilege checks
+iamlean explain fixtures/writeup-wildcards.json
+
+# Trust/resource policy — add context for scope classification
+iamlean explain fixtures/xa/writeup-trust.json \
+  --account 111122223333 \
+  --accounts fixtures/context/accounts.txt \
+  --org-id o-ours1234
+
+# Without context flags, scopes are UNVERIFIED (warnings, no findings)
+iamlean explain fixtures/xa/writeup-external.json
+```
+
+### grants — Show who gets access
+
+```sh
+# List every grant row with principal, scope, actions, and conditions
+iamlean grants fixtures/xa/writeup-trust.json \
+  --account 111122223333 \
+  --accounts fixtures/context/accounts.txt \
+  --org-id o-ours1234 \
+  --format json | jq '.grants[] | {principal, scope, actions}'
+```
+
+### Context flags
+
+All optional. Absent flags produce UNVERIFIED scope with a warning — never a finding.
+
+| Flag | Purpose |
+|---|---|
+| `--account <id>` | Owner of the policy document |
+| `--accounts <file>` | File with one account ID per line (known accounts) |
+| `--org-id o-xxxx` | Your AWS organization ID |
