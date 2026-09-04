@@ -267,17 +267,26 @@ def write_catalog(all_decls: list[Decl], branch: str):
     lines = [
         "# Theorem Catalog\n",
         f"**{proved}** proved · **{sorry}** sorry · **{total}** total\n",
-        "| Status | Name | Module | Description |",
-        "|--------|------|--------|-------------|",
     ]
 
-    for d in sorted(theorems, key=lambda x: (x.status != "proved", x.fqn)):
-        src_link = f"{GITHUB_BASE}/blob/{branch}/{d.file}#L{d.line}"
-        desc = d.docstring[:80] if d.docstring else ""
-        mod_slug = d.module.replace(".", "_")
-        lines.append(
-            f"| {d.badge} | [{d.fqn}]({src_link}) | [{d.module}](modules/{mod_slug}.md) | {desc} |"
-        )
+    # Group by module
+    from collections import OrderedDict
+    by_module: dict[str, list[Decl]] = OrderedDict()
+    for d in sorted(theorems, key=lambda x: (x.module, x.fqn)):
+        by_module.setdefault(d.module, []).append(d)
+
+    for mod, mod_theorems in by_module.items():
+        mod_slug = mod.replace(".", "_")
+        lines.append(f"## [{mod}](modules/{mod_slug}.md)\n")
+        lines.append("| Status | Name | Description |")
+        lines.append("|--------|------|-------------|")
+        for d in mod_theorems:
+            src_link = f"{GITHUB_BASE}/blob/{branch}/{d.file}#L{d.line}"
+            desc = d.docstring[:80] if d.docstring else ""
+            lines.append(
+                f"| {d.badge} | [{d.name}]({src_link}) | {desc} |"
+            )
+        lines.append("")
 
     out.write_text("\n".join(lines))
 
