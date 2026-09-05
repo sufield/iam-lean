@@ -1,5 +1,6 @@
 import IamExplainer.Emit
 import IamExplainer.Layers
+import IAMRules
 
 open Lean (Json)
 
@@ -166,21 +167,14 @@ theorem narrowResources_narrows
 
 private theorem transformStmt_deny_pres (s : Statement) (ns : List Need)
     (hd : s.effect = .deny) : (transformStmt s ns).1 = some s := by
-  unfold transformStmt narrowAction
-  have : (s.effect != Effect.allow) = true := by rw [hd]; decide
-  simp [this]
+  unfold transformStmt narrowAction; aesop (add norm simp [hd])
 
 private theorem narrowAction_preserve (stmt : Statement) (ns : List Need)
     (heff : stmt.effect = .allow) (s1 : Statement)
     (hs1 : narrowAction stmt ns = some s1) :
     s1.effect = stmt.effect ∧ s1.condition = stmt.condition ∧
     s1.resources = stmt.resources ∧ s1.notResources = stmt.notResources := by
-  unfold narrowAction at hs1
-  have : (stmt.effect != Effect.allow) = false := by rw [heff]; decide
-  simp only [this, Bool.false_eq_true, ite_false] at hs1
-  split at hs1
-  · simp at hs1; subst hs1; exact ⟨rfl, rfl, rfl, rfl⟩
-  · split at hs1 <;> split at hs1 <;> (try simp at hs1) <;> (try cases hs1) <;> exact ⟨rfl, rfl, rfl, rfl⟩
+  unfold narrowAction at hs1; aesop (add norm simp [heff])
 
 private theorem narrowAction_grants (stmt : Statement) (ns : List Need)
     (hns : ∀ n ∈ ns, '?' ∉ n.action.toList ∧ '*' ∉ n.action.toList)
@@ -208,11 +202,7 @@ private theorem narrowResource_preserve (s1 stmt : Statement) (ns : List Need) :
     (narrowResource s1 stmt ns).condition = s1.condition ∧
     (narrowResource s1 stmt ns).actions = s1.actions ∧
     (narrowResource s1 stmt ns).notActions = s1.notActions := by
-  simp_all only [narrowResource]
-  split <;> try exact ⟨rfl, rfl, rfl, rfl⟩
-  split <;> try exact ⟨rfl, rfl, rfl, rfl⟩
-  split <;> try exact ⟨rfl, rfl, rfl, rfl⟩
-  split <;> exact ⟨rfl, rfl, rfl, rfl⟩
+  simp only [narrowResource]; aesop
 
 private theorem touchingResources_spec (stmt : Statement) (ns : List Need)
     (hall : allNeedResourcesExact stmt ns = true) (r : String)
