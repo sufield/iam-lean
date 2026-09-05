@@ -8,6 +8,9 @@ name = "Seclib"
 [[lean_lib]]
 name = "IamExplainer"
 
+[[lean_lib]]
+name = "IAMRules"
+
 [[lean_exe]]
 name = "iamlean"
 root = "Main"
