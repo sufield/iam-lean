@@ -24,26 +24,12 @@ def denyOverridesRules (rules : List Rule) : Bool :=
 private theorem deny_any_rules_iff (rules : List Rule) :
     (rules.any fun r => r.decision == .deny && r.sat && appliesOf r.decision r.applicability) = true ↔
     ∃ r ∈ rules, r.decision = .deny ∧ r.sat = true ∧ appliesOf r.decision r.applicability = true := by
-  constructor
-  · intro h; rw [List.any_eq_true] at h; obtain ⟨r, hr, hb⟩ := h
-    simp only [Bool.and_eq_true, beq_iff_eq] at hb
-    exact ⟨r, hr, hb.1.1, hb.1.2, hb.2⟩
-  · intro ⟨r, hr, hd, hm, ha⟩; rw [List.any_eq_true]
-    refine ⟨r, hr, ?_⟩
-    have h1 : (r.decision == .deny) = true := beq_iff_eq.mpr hd
-    simp only [h1, hm, ha, Bool.true_and]
+  simp [List.any_eq_true, Bool.and_eq_true, beq_iff_eq, and_assoc]
 
 private theorem allow_any_rules_iff (rules : List Rule) :
     (rules.any fun r => r.decision == .allow && r.sat && appliesOf r.decision r.applicability) = true ↔
     ∃ r ∈ rules, r.decision = .allow ∧ r.sat = true ∧ appliesOf r.decision r.applicability = true := by
-  constructor
-  · intro h; rw [List.any_eq_true] at h; obtain ⟨r, hr, hb⟩ := h
-    simp only [Bool.and_eq_true, beq_iff_eq] at hb
-    exact ⟨r, hr, hb.1.1, hb.1.2, hb.2⟩
-  · intro ⟨r, hr, hd, hm, ha⟩; rw [List.any_eq_true]
-    refine ⟨r, hr, ?_⟩
-    have h1 : (r.decision == .allow) = true := beq_iff_eq.mpr hd
-    simp only [h1, hm, ha, Bool.true_and]
+  simp [List.any_eq_true, Bool.and_eq_true, beq_iff_eq, and_assoc]
 
 private theorem mem_eraseIdx_of_mem_ne {l : List α} {r : α} {i : Nat}
     (hr : r ∈ l) (hi : i < l.length) (hne : r ≠ l[i]) :
