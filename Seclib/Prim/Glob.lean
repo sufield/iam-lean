@@ -43,8 +43,7 @@ theorem matchPattern_literal_mp (p s : String)
     (h : matchPattern p s = true) :
     ciEq p s = true := by
   unfold matchPattern at h
-  have hlist := matchPatternGo_literal_eq _ _ hno_star hno_q h
-  have heq := String.ext hlist
+  have heq := String.ext (matchPatternGo_literal_eq _ _ hno_star hno_q h)
   subst heq; simp [ciEq]
 
 theorem matchPattern_cs_literal_eq (p s : String)
