@@ -13,6 +13,11 @@ name = "iamlean"
 root = "Main"
 
 [[require]]
+name = "aesop"
+git = "https://github.com/leanprover-community/aesop"
+rev = "v4.33.0"
+
+[[require]]
 name = "checkdecls"
 git = "https://github.com/PatrickMassot/checkdecls.git"
 rev = "master"
