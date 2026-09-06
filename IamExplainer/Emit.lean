@@ -49,7 +49,7 @@ def touchingResources (stmt : Statement) (ns : List Need) : List String :=
     then some n.resource
     else none).eraseDups
 
-def narrowAction (stmt : Statement) (ns : List Need) : Option Statement :=
+@[grind] def narrowAction (stmt : Statement) (ns : List Need) : Option Statement :=
   if stmt.effect != .allow then some stmt
   else
     let literals := (ns.filter (fun n => stmtGrantsAction stmt n.action)
@@ -64,7 +64,7 @@ def narrowAction (stmt : Statement) (ns : List Need) : Option Statement :=
         some { stmt with actions := some literals, notActions := none }
       else some stmt
 
-def narrowResource (s1 stmt : Statement) (ns : List Need) : Statement :=
+@[grind] def narrowResource (s1 stmt : Statement) (ns : List Need) : Statement :=
   if stmt.notResources.isSome then s1
   else
     let tRes := touchingResources stmt ns
@@ -74,7 +74,7 @@ def narrowResource (s1 stmt : Statement) (ns : List Need) : Statement :=
       else { s1 with resources := some tRes, notResources := none }
     else s1
 
-def transformStmt (stmt : Statement) (ns : List Need)
+@[grind] def transformStmt (stmt : Statement) (ns : List Need)
     : Option Statement × List Transform × List Withheld :=
   match narrowAction stmt ns with
   | none =>

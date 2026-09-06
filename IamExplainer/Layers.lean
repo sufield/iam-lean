@@ -132,7 +132,7 @@ def evalLayers (req : Request) (ctx : CondContext) (layers : Layers)
   let evalWarns := all.flatMap (·.warnings)
   { blocked, unresolved := unres ++ crossAcct, notes, warnings := evalWarns }
 
-def allowsLayered (p : Policy) (req : Request) (ctx : CondContext) (layers : Layers)
+@[grind] def allowsLayered (p : Policy) (req : Request) (ctx : CondContext) (layers : Layers)
     (rcpServices : List String) (kind : DocKind) : LayerVerdict :=
   if allows p req ctx then
     let lr := evalLayers req ctx layers rcpServices kind

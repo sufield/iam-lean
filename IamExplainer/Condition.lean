@@ -54,7 +54,7 @@ private def condValues (v : Json) : List String :=
 structure CondWarning where
   message : String
 
-def evalNull (condVal : String) (ctx : CondContext) (key : String) : Tri :=
+@[grind] def evalNull (condVal : String) (ctx : CondContext) (key : String) : Tri :=
   if !ctx.complete then .u
   else
     let present := ctx.lookup key |>.isSome
@@ -63,7 +63,7 @@ def evalNull (condVal : String) (ctx : CondContext) (key : String) : Tri :=
     | "false" => if present then .t else .f
     | _ => .u
 
-def evalKeyOp (base : String) (ifExists forAny forAll : Bool)
+@[grind] def evalKeyOp (base : String) (ifExists forAny forAll : Bool)
     (condVals : List String) (ctx : CondContext) (key : String) :
     Tri × List CondWarning :=
   if base == "Null" then
@@ -138,14 +138,14 @@ def decodeCondBlocks (cond : Option Json) : CondBlocks × List CondWarning :=
 
 -- === Evaluation over CondBlocks (list recursion only) ===
 
-def evalCondInner (ctx : CondContext) (op : CondOp) : List CondKeyVal → Tri × List CondWarning
+@[grind] def evalCondInner (ctx : CondContext) (op : CondOp) : List CondKeyVal → Tri × List CondWarning
   | [] => (.t, [])
   | pair :: rest =>
     let rw := evalKeyOp op.base op.ifExists op.forAny op.forAll pair.condVals ctx pair.key
     let acc := evalCondInner ctx op rest
     (Tri.and rw.1 acc.1, rw.2 ++ acc.2)
 
-def evalCond (ctx : CondContext) : CondBlocks → Tri × List CondWarning
+@[grind] def evalCond (ctx : CondContext) : CondBlocks → Tri × List CondWarning
   | [] => (.t, [])
   | op :: rest =>
     let inner := evalCondInner ctx op op.pairs

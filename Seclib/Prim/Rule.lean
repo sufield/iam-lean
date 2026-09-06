@@ -8,7 +8,7 @@ structure Rule where
   applicability : Tri
   sat           : Bool
 
-def appliesOf : Effect → Tri → Bool
+@[grind] def appliesOf : Effect → Tri → Bool
   | .deny, .t => true
   | .deny, _ => false
   | .allow, .f => false

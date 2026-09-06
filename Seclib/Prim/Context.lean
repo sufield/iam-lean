@@ -14,7 +14,7 @@ structure CondContext where
   values   : List (String × Json)
   complete : Bool
 
-def noContext : CondContext := { values := [], complete := false }
+@[grind] def noContext : CondContext := { values := [], complete := false }
 
 def mkContext (j : Json) : Except String CondContext :=
   match j with
