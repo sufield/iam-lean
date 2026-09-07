@@ -42,7 +42,7 @@ theorem matchPattern_ci_congr (p s s' : String)
 private theorem matchActionPattern_ciEq (p ℓ a : String)
     (htl : toLowerStr ℓ = toLowerStr a) :
     matchActionPattern p ℓ = matchActionPattern p a := by
-  simp [matchActionPattern, matchPattern, htl]
+  grind
 
 theorem stmtGrantsAction_ci_congr (st : Statement) (ℓ a : String)
     (h : stmtGrantsAction st ℓ = true) (heq : ciEq ℓ a = true) :
@@ -167,14 +167,14 @@ theorem narrowResources_narrows
 
 private theorem transformStmt_deny_pres (s : Statement) (ns : List Need)
     (hd : s.effect = .deny) : (transformStmt s ns).1 = some s := by
-  unfold transformStmt narrowAction; aesop (add norm simp [hd])
+  grind
 
 private theorem narrowAction_preserve (stmt : Statement) (ns : List Need)
     (heff : stmt.effect = .allow) (s1 : Statement)
     (hs1 : narrowAction stmt ns = some s1) :
     s1.effect = stmt.effect ∧ s1.condition = stmt.condition ∧
     s1.resources = stmt.resources ∧ s1.notResources = stmt.notResources := by
-  unfold narrowAction at hs1; aesop (add norm simp [heff])
+  grind
 
 private theorem narrowAction_grants (stmt : Statement) (ns : List Need)
     (hns : ∀ n ∈ ns, '?' ∉ n.action.toList ∧ '*' ∉ n.action.toList)
@@ -202,7 +202,7 @@ private theorem narrowResource_preserve (s1 stmt : Statement) (ns : List Need) :
     (narrowResource s1 stmt ns).condition = s1.condition ∧
     (narrowResource s1 stmt ns).actions = s1.actions ∧
     (narrowResource s1 stmt ns).notActions = s1.notActions := by
-  simp only [narrowResource]; aesop
+  grind
 
 private theorem touchingResources_spec (stmt : Statement) (ns : List Need)
     (hall : allNeedResourcesExact stmt ns = true) (r : String)
@@ -341,7 +341,7 @@ theorem layers_narrow (p : Policy) (req : Request) (ctx : CondContext)
     (layers : Layers) (rcpSvcs : List String) (kind : DocKind)
     (h : (allowsLayered p req ctx layers rcpSvcs kind).allowed = true) :
     allows p req ctx = true := by
-  unfold allowsLayered at h; split at h <;> simp_all
+  grind
 
 theorem layer_add_monotone (p : Policy) (req : Request) (ctx : CondContext)
     (rcpSvcs : List String) (kind : DocKind)
