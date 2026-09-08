@@ -177,6 +177,137 @@ Tasks with NO-MATCH to existing Stave controls represent evaluation capabilities
 
 **All 65 theorem stubs have NO-MATCH** — aws-bench covers zero existing Stave controls. This is expected: aws-bench tests broad AWS operations, not IAM policy logic. The value is in *expanding* the kernel's evaluation scope, not validating what it already does.
 
+## A/B/C Classification of 65 NO-MATCH Theorems
+
+Date: 2026-09-08
+
+The 65/65 NO-MATCH result needs explanation before it's actionable.
+Three categories explain why each theorem doesn't match an existing Stave control:
+
+- **A (Scope mismatch)**: aws-bench asks "why did X fail?" (operational diagnosis).
+  Stave asks "is X configured safely?" (configuration verification).
+  Same resources, different questions. No extraction work needed.
+- **B (Observation-type gap)**: The security check exists or is a natural extension
+  of the Go/CEL catalog. Lean types exist as stubs but need full definitions
+  and evaluators. Work = expand types, wire evaluators.
+- **C (Genuine catalog gap)**: Stave doesn't check this at all.
+  Work = author new controls in Go/CEL, then formalize in Lean.
+
+### Summary
+
+| Class | Count | % | Pipeline action |
+|-------|:-----:|:-:|-----------------|
+| **A — Scope mismatch** | 35 | 54% | None — validates `allows` evaluator, not Stave |
+| **B — Observation-type gap** | 13 | 20% | Expand Lean types, wire evaluators |
+| **C — Genuine catalog gap** | 17 | 26% | Author new controls, then formalize |
+
+### A — Scope Mismatch (35 theorems)
+
+Over half the NO-MATCH results aren't gaps. aws-bench is a diagnostic benchmark;
+Stave is a security posture tool. These theorems constrain the `allows` evaluator
+(already built) or diagnose operational failures (not Stave's domain).
+
+| # | Theorem | Diagnosis type |
+|:-:|---------|---------------|
+| 1 | `apigw_iam_method_mismatch` | Debugging API GW 403 (wrong method in resource ARN) |
+| 2 | `s3_deny_only_no_grant` | Debugging CloudFront 403 (no Allow for OAC) |
+| 3 | `s3_no_identity_no_bucket_ref` | Debugging S3 access (no identity + not in bucket policy) |
+| 4 | `missing_kms_decrypt` | Debugging secrets access (missing kms:Decrypt) |
+| 5 | `missing_ec2_eni_perms` | Debugging ENI attach (missing ec2 perms) |
+| 6 | `ecs_no_ecr_access` | Debugging ECS pull (missing ecr perms) |
+| 7 | `kms_disabled_blocks_ebs` | Debugging ASG launch (disabled KMS key) |
+| 8 | `asg_zero_desired_no_launch` | Debugging ASG (DesiredCapacity=0) |
+| 9 | `lakeformation_no_grants` | Debugging Glue (LF authorization layer) |
+| 10 | `glue_role_missing_logs` | Debugging Glue worker (missing logs perms) |
+| 11 | `eventbridge_s3_wrong_bucket` | Debugging task failure (wrong S3 ARN) |
+| 12 | `cfn_wrong_region` | Debugging deployment (wrong region) |
+| 13 | `sg_blocks_health_check` | Debugging NLB health check (SG blocks port 4000) |
+| 14 | `sg_empty_blocks_all` | Debugging blocked traffic (empty SG) |
+| 15 | `ssh_vpc_cidr_only` | Debugging SSH timeout (VPC CIDR only) |
+| 16 | `ssh_blocked_three_layers` | Debugging SSH (no key + private + NACL deny) |
+| 17 | `tgw_missing_routes` | Debugging TGW connectivity (missing routes) |
+| 18 | `alarm_inverted_comparison` | Debugging alarm (fires when healthy) |
+| 19 | `alarm_no_actions` | Debugging alarm (no actions configured) |
+| 20 | `log_destination_mismatch` | Debugging logging (wrong log group) |
+| 21 | `emr_driver_memory_exceeds_instance` | Debugging EMR (driver > instance memory) |
+| 22 | `cloudfront_no_root_object` | Debugging origin error (no defaultRootObject) |
+| 23 | `opensearch_no_custom_endpoint` | Debugging timeout (no custom endpoint + Cognito) |
+| 24 | `alb_target_ip_mismatch` | Debugging bad gateway (IPs not in ENIs) |
+| 25 | `cfn_resource_drift` | Debugging drift (resource deleted post-create) |
+| 26 | `lambda_cross_region_s3_gateway` | Debugging Lambda (cross-region S3 gateway) |
+| 27 | `ecs_zero_desired_no_traffic` | Debugging no traffic (desiredCount=0) |
+| 28 | `ecs_ecr_tag_mismatch` | Debugging ECS (ECR tag doesn't exist) |
+| 29 | `ecs_deployment_latent_blockers` | Debugging deployment (desiredCount=0 + ECR empty) |
+| 30 | `dmz_vpc_no_igw_dead_end` | Debugging routing (DMZ local-only routes) |
+| 31 | `lambda_env_var_mismatch` | Debugging stale config (CFn logical ID in env var) |
+| 32 | `batch_ecr_empty` | Debugging batch job (ECR repo empty) |
+| 33 | `esm_missing_queue` | Debugging consumer (queue doesn't exist) |
+| 34 | `pipeline_no_source_branch` | Debugging pipeline (zero branches) |
+| 35 | `cfn_dangling_version_ref` | Debugging stack (alias refs non-existent version) |
+
+### B — Observation-Type Gap (13 theorems)
+
+Security checks that exist or are natural extensions of Go/CEL controls.
+Lean types exist as stubs. Work = expand type definitions, wire evaluators.
+
+| # | Theorem | Existing coverage | Missing in Lean |
+|:-:|---------|------------------|-----------------|
+| 1 | `ssh_reachable_requires_all_three` | SGIngress + compound | `isSshReachable` evaluator |
+| 2 | `unused_sg` | SG attachment audit | `attachedTo` evaluator |
+| 3 | `ec2_vuln_scan_unencrypted_ebs` | Multi-property scan | `scanInstance` evaluator |
+| 4 | `s3_partial_block_still_safe` | S3 public access block | `isPubliclyAccessible` evaluator |
+| 5 | `s3_kms_not_default` | S3 encryption audit | Encryption type predicate |
+| 6 | `s3_cross_account_export` | Cross-account data flow | Analytics export check |
+| 7 | `s3_website_enabled` | S3 website hosting | Website-enabled predicate |
+| 8 | `s3_ownership_enforced` | S3 ownership control | Ownership predicate |
+| 9 | `public_subnet_has_igw_route` | Public subnet check | SubnetObs IGW predicate |
+| 10 | `ec2_not_in_default_vpc` | Default VPC audit | VPC comparison predicate |
+| 11 | `vpc_flow_log_to_s3` | VPC flow log compliance | Flow log destination check |
+| 12 | `aurora_no_deletion_protection` | DB deletion protection | AuroraClusterObs predicate |
+| 13 | `waf_has_rules` | WAF rule presence | WAFWebACLObs predicate |
+
+### C — Genuine Catalog Gap (17 theorems)
+
+Stave doesn't check these. New control-authoring targets, grouped by domain.
+
+| # | Theorem | Domain | What's new |
+|:-:|---------|--------|-----------|
+| 1 | `cognito_dead_phone_recovery` | Security | Recovery mechanism feasibility |
+| 2 | `dynamodb_has_resource_policy` | Security-adj | DynamoDB resource policy (newer API) |
+| 3 | `s3_metrics_no_alarm` | Observability | Metrics without CW alarm consumers |
+| 4 | `backup_cross_region_copy` | DR | Cross-region backup presence |
+| 5 | `aurora_scaling_too_low` | Capacity | Max ACU + reader count sizing |
+| 6 | `s3_no_intelligent_tiering` | Cost | Tiering config presence |
+| 7 | `s3_has_lifecycle` | Operational | Lifecycle rules presence |
+| 8 | `s3_lifecycle_tag_filter` | Operational | Tag-based lifecycle detail |
+| 9 | `s3_inventory_no_prefix` | Operational | Inventory config detail |
+| 10 | `ec2_same_vpc_connectivity` | Networking | Topology query |
+| 11 | `dynamodb_has_kinesis_stream` | Operational | Stream config presence |
+| 12 | `cfn_import_dependency` | Infra | CloudFormation ImportValue deps |
+| 13 | `ecs_non_default_config` | Operational | Non-default ECS config listing |
+| 14 | `lambda_layer_s3_code` | Operational | Lambda layer hosting |
+| 15 | `lambda_sns_triggered` | Operational | Trigger listing |
+| 16 | `metric_stream_excludes` | Observability | Metric stream exclusion filters |
+| 17 | `cfn_glue_table_provenance` | Provenance | Resource origin tracking |
+
+### Pipeline Priority
+
+1. **B items first (13)** — Type expansion. Controls exist; work is expanding Lean
+   stubs into full definitions. Each B item yields a provable theorem. Quick wins.
+2. **C items, security-first (7 of 17)** — Items 1-5 above are security/DR/capacity.
+   Author Go/CEL controls, then formalize. Highest unique value.
+3. **C items, operational (10 of 17)** — Items 6-17 are cost/operational/observability.
+   Lower priority; useful but not on the security critical path.
+4. **A items need no extraction work** — They validate `allows` (already built).
+   Many are already proved (`exact h_...`). Leave as spec anchors.
+
+### Key Insight
+
+The real extraction surface is **30 tasks** (13B + 17C), not 65.
+The B:C ratio (13:17) is roughly balanced — the pipeline needs both
+type expansion AND control authoring, with type expansion being faster
+and higher-confidence (known control logic).
+
 ## Type Coverage Analysis
 
 | Scope | Tasks covered | % of formalizable |

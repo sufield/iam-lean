@@ -14,6 +14,9 @@ name = "IAMRules"
 [[lean_lib]]
 name = "AWSBench"
 
+[[lean_lib]]
+name = "Stave"
+
 [[lean_exe]]
 name = "iamlean"
 root = "Main"
