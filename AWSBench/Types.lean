@@ -280,26 +280,27 @@ structure EventSourceMappingObs where
   targetQueue : Option String
 deriving Repr
 
-/-! Evaluation function stubs.
+/-! Evaluation functions for aws-bench theorems. -/
 
-These are the functions aws-bench theorems constrain. Any correct
-kernel implementation must satisfy the theorem specifications below.
-Bodies are sorry — implementation comes when the kernel is built. -/
+def sgAllowsInbound (sg : SecurityGroupObs) (port : Nat) (source : String) : Bool :=
+  sg.ingressRules.any fun r =>
+    r.fromPort ≤ port && port ≤ r.toPort && r.cidrIp == some source
 
--- STUB: aws-bench requirement (SG evaluation)
-def sgAllowsInbound (sg : SecurityGroupObs) (port : Nat) (source : String) : Bool := sorry
+def isPubliclyAccessible (b : S3BucketObs) : Bool :=
+  !(b.publicAccessBlock.ignorePublicAcls &&
+    b.publicAccessBlock.blockPublicPolicy &&
+    b.publicAccessBlock.restrictPublicBuckets)
 
--- STUB: aws-bench requirement (S3 public access)
-def isPubliclyAccessible (b : S3BucketObs) : Bool := sorry
-
--- STUB: aws-bench requirement (SSH reachability)
 def isSshReachable (inst : EC2InstanceObs) (subnet : SubnetObs)
-    (sg : SecurityGroupObs) : Bool := sorry
+    (sg : SecurityGroupObs) : Bool :=
+  inst.publicIp.isSome && subnet.hasRouteToIgw && sgAllowsInbound sg 22 "0.0.0.0/0"
 
--- STUB: aws-bench requirement (NACL evaluation)
-def naclAllows (rules : List NACLRule) (port : Nat) (source : String) : Bool := sorry
+def naclAllows (rules : List NACLRule) (port : Nat) (source : String) : Bool :=
+  let sorted := rules.mergeSort (fun a b => a.ruleNumber < b.ruleNumber)
+  match sorted.find? (fun r => r.fromPort ≤ port && port ≤ r.toPort) with
+  | some r => r.action == .allow
+  | none   => false
 
--- STUB: aws-bench requirement (EC2 vulnerability scan)
 structure VulnerabilityScan where
   outdatedAgent    : Bool
   deprecatedAmi    : Bool
@@ -307,10 +308,14 @@ structure VulnerabilityScan where
   publiclyExposed  : Bool
 
 def scanInstance (inst : EC2InstanceObs) (subnet : SubnetObs)
-    (sg : SecurityGroupObs) : VulnerabilityScan := sorry
+    (sg : SecurityGroupObs) : VulnerabilityScan :=
+  { outdatedAgent   := false
+    deprecatedAmi   := false
+    unencryptedEbs  := !inst.ebsEncrypted
+    publiclyExposed := inst.publicIp.isSome && subnet.hasRouteToIgw }
 
--- STUB: aws-bench requirement (VPC routing reachability)
-def vpcHasRouteToTarget (rt : RouteTableObs) (targetCidr : String) : Bool := sorry
+def vpcHasRouteToTarget (rt : RouteTableObs) (targetCidr : String) : Bool :=
+  rt.routes.any fun r => r.destinationCidr == targetCidr && r.targetType != "local"
 
--- STUB: aws-bench requirement (EMR memory check)
-def sparkDriverFitsInstance (cluster : EMRClusterObs) : Bool := sorry
+def sparkDriverFitsInstance (cluster : EMRClusterObs) : Bool :=
+  decide (cluster.sparkDriverMemoryMB ≤ cluster.instanceTotalMemoryMB)

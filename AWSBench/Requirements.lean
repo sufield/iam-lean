@@ -29,7 +29,12 @@ theorem aws_bench_apigw_iam_method_mismatch
     (h_no_resource_match : ∀ s ∈ p.statements, s.effect = .allow →
       resourceMatches s req.resource = false) :
     allows p req noContext = false := by
-  sorry
+  simp only [allows]
+  cases p.statements.any (fun s =>
+    s.effect == .deny && stmtMatches s req &&
+    decide ((evalCond noContext s.condBlocks).1 = .t)) <;> simp
+  intro s hs heff hmatch
+  simp [stmtMatches, h_no_resource_match s hs heff] at hmatch
 
 /-- aws-bench: api-and-observability/cloudfront-oac-s-forbidden-troubleshoot
     Scenario: S3 bucket policy contains only a Deny statement (for non-SSL),
@@ -41,7 +46,12 @@ theorem aws_bench_s3_deny_only_no_grant
     (p : Policy) (req : Request)
     (h_deny_only : ∀ s ∈ p.statements, s.effect = .deny) :
     allows p req noContext = false := by
-  sorry
+  simp only [allows]
+  cases p.statements.any (fun s =>
+    s.effect == .deny && stmtMatches s req &&
+    decide ((evalCond noContext s.condBlocks).1 = .t)) <;> simp
+  intro s hs heff
+  exact absurd heff (by simp [h_deny_only s hs])
 
 /-- aws-bench: databases-and-storage/check-s-bucket-access-profiles
     Scenario: IAM user has no identity policy, bucket policy grants access
@@ -56,7 +66,14 @@ theorem aws_bench_s3_no_identity_no_bucket_ref
       resourceMatches s req.resource = false) :
     allows identity_policy req noContext = false ∧
     allows bucket_policy req noContext = false := by
-  sorry
+  constructor
+  · simp [allows, h_empty_identity]
+  · simp only [allows]
+    cases bucket_policy.statements.any (fun s =>
+      s.effect == .deny && stmtMatches s req &&
+      decide ((evalCond noContext s.condBlocks).1 = .t)) <;> simp
+    intro s hs heff hmatch
+    simp [stmtMatches, h_no_bucket_match s hs heff] at hmatch
 
 /-- aws-bench: troubleshooting-multiservice/ec-secrets-manager-exit-code-error
     Scenario: IAM role has secretsmanager:GetSecretValue but no kms:Decrypt.
@@ -69,7 +86,12 @@ theorem aws_bench_missing_kms_decrypt
     (h_no_kms_grant : ∀ s ∈ p.statements, s.effect = .allow →
       stmtGrantsAction s "kms:Decrypt" = false) :
     allows p decrypt_req noContext = false := by
-  sorry
+  simp only [allows]
+  cases p.statements.any (fun s =>
+    s.effect == .deny && stmtMatches s decrypt_req &&
+    decide ((evalCond noContext s.condBlocks).1 = .t)) <;> simp
+  intro s hs heff hmatch
+  simp [stmtMatches, actionMatches, h_action, h_no_kms_grant s hs heff] at hmatch
 
 /-- aws-bench: troubleshooting-multiservice/asg-secondary-network-interface-attach-failure
     Scenario: Instance role only has Secrets Manager permissions, missing EC2 ENI ops.
@@ -82,7 +104,12 @@ theorem aws_bench_missing_ec2_eni_perms
     (h_no_ec2 : ∀ s ∈ p.statements, s.effect = .allow →
       stmtGrantsAction s "ec2:CreateNetworkInterface" = false) :
     allows p req noContext = false := by
-  sorry
+  simp only [allows]
+  cases p.statements.any (fun s =>
+    s.effect == .deny && stmtMatches s req &&
+    decide ((evalCond noContext s.condBlocks).1 = .t)) <;> simp
+  intro s hs heff hmatch
+  simp [stmtMatches, actionMatches, h_action, h_no_ec2 s hs heff] at hmatch
 
 /-- aws-bench: serverless-apps/ecs-services-ecr-access-check
     Scenario: ECS task execution role cannot access ECR repository.
@@ -94,7 +121,12 @@ theorem aws_bench_ecs_no_ecr_access
     (h_no_ecr : ∀ s ∈ p.statements, s.effect = .allow →
       stmtGrantsAction s "ecr:GetDownloadUrlForLayer" = false) :
     allows p ecr_req noContext = false := by
-  sorry
+  simp only [allows]
+  cases p.statements.any (fun s =>
+    s.effect == .deny && stmtMatches s ecr_req &&
+    decide ((evalCond noContext s.condBlocks).1 = .t)) <;> simp
+  intro s hs heff hmatch
+  simp [stmtMatches, actionMatches, h_action, h_no_ecr s hs heff] at hmatch
 
 /-- aws-bench: troubleshooting-multiservice/diagnose-auto-scaling-group-launch-failure
     Scenario: Launch template EBS uses KMS key that is disabled.
@@ -149,7 +181,12 @@ theorem aws_bench_glue_role_missing_logs
     (h_no_logs : ∀ s ∈ p.statements, s.effect = .allow →
       stmtGrantsAction s "logs:CreateLogGroup" = false) :
     allows p logs_req noContext = false := by
-  sorry
+  simp only [allows]
+  cases p.statements.any (fun s =>
+    s.effect == .deny && stmtMatches s logs_req &&
+    decide ((evalCond noContext s.condBlocks).1 = .t)) <;> simp
+  intro s hs heff hmatch
+  simp [stmtMatches, actionMatches, h_action, h_no_logs s hs heff] at hmatch
 
 /-- aws-bench: troubleshooting-multiservice/eventbridge-ecs-task-trigger-debugging
     Scenario: ECS task role only has S3 read for the deployment bucket, not
@@ -191,7 +228,7 @@ theorem aws_bench_sg_empty_blocks_all
     (sg : SecurityGroupObs) (port : Nat) (source : String)
     (h_empty : sg.ingressRules = []) :
     sgAllowsInbound sg port source = false := by
-  sorry
+  simp [sgAllowsInbound, h_empty]
 
 /-- aws-bench: reference-architectures/trace-ec2-ssh-access-path
     Scenario: SG restricts SSH (port 22) to VPC CIDR only, not 0.0.0.0/0.
@@ -205,7 +242,15 @@ theorem aws_bench_ssh_vpc_cidr_only
       r.fromPort ≤ 22 ∧ r.toPort ≥ 22 → r.cidrIp = some vpcCidr)
     (h_not_world : vpcCidr ≠ "0.0.0.0/0") :
     sgAllowsInbound sg 22 "0.0.0.0/0" = false := by
-  sorry
+  simp only [sgAllowsInbound]
+  rw [Bool.eq_false_iff]
+  intro h
+  obtain ⟨r, hr, hpred⟩ := List.any_eq_true.mp h
+  simp only [Bool.and_eq_true, decide_eq_true_eq, beq_iff_eq] at hpred
+  obtain ⟨⟨hfrom, hto⟩, hcidr⟩ := hpred
+  have hv := h_ssh_rule r hr ⟨hfrom, hto⟩
+  rw [hv] at hcidr
+  exact h_not_world (Option.some.inj hcidr)
 
 /-- aws-bench: ec2-multiregion/list-ec-instances-all-regions-1
     Scenario: An instance is SSH-reachable from the internet iff it has:
@@ -216,7 +261,7 @@ theorem aws_bench_ssh_reachable_requires_all_three
     (inst : EC2InstanceObs) (subnet : SubnetObs) (sg : SecurityGroupObs)
     (h_no_public_ip : inst.publicIp = none) :
     isSshReachable inst subnet sg = false := by
-  sorry
+  simp [isSshReachable, h_no_public_ip]
 
 /-- aws-bench: ec2-multiregion/list-unused-security-groups-all-regions
     Scenario: SGs not attached to any ENI/instance are "unused."
@@ -241,7 +286,7 @@ theorem aws_bench_ssh_blocked_three_layers
     (h_nacl_deny : ∃ r ∈ naclRules,
       r.action = .deny ∧ r.fromPort ≤ 22 ∧ r.toPort ≥ 22) :
     isSshReachable inst subnet sg = false := by
-  sorry
+  simp [isSshReachable, h_private]
 
 /-! ═══════════════════════════════════════════════════════════
     Group 3: S3 Configuration
@@ -261,7 +306,7 @@ theorem aws_bench_s3_partial_block_still_safe
     (h_policy_true : b.publicAccessBlock.blockPublicPolicy = true)
     (h_restrict_true : b.publicAccessBlock.restrictPublicBuckets = true) :
     isPubliclyAccessible b = false := by
-  sorry
+  simp [isPubliclyAccessible, h_ignore_true, h_policy_true, h_restrict_true]
 
 /-- aws-bench: databases-and-storage/report-unencrypted-s-buckets
     Scenario: Bucket using KMS encryption (SSE-KMS) vs default S3-managed (AES256).
@@ -310,7 +355,7 @@ theorem aws_bench_ec2_vuln_scan_unencrypted_ebs
     (inst : EC2InstanceObs) (subnet : SubnetObs) (sg : SecurityGroupObs)
     (h_unencrypted : inst.ebsEncrypted = false) :
     (scanInstance inst subnet sg).unencryptedEbs = true := by
-  sorry
+  simp [scanInstance, h_unencrypted]
 
 /-- aws-bench: reference-architectures/audit-cognito-account-recovery
     Scenario: Cognito pool lists phone as priority-1 recovery but SmsConfiguration
@@ -593,7 +638,7 @@ theorem aws_bench_emr_driver_memory_exceeds_instance
     (cluster : EMRClusterObs)
     (h_exceeds : cluster.sparkDriverMemoryMB > cluster.instanceTotalMemoryMB) :
     sparkDriverFitsInstance cluster = false := by
-  sorry
+  simp [sparkDriverFitsInstance]; omega
 
 /-- aws-bench: reference-architectures/review-backup-plan-cross-region
     Reference: "35-day retention, cross-region copy to us-west-2"
@@ -686,7 +731,11 @@ theorem aws_bench_dmz_vpc_no_igw_dead_end
     (dmzRT : RouteTableObs)
     (h_local_only : ∀ r ∈ dmzRT.routes, r.targetType = "local") :
     vpcHasRouteToTarget dmzRT "0.0.0.0/0" = false := by
-  sorry
+  simp only [vpcHasRouteToTarget]
+  rw [Bool.eq_false_iff]
+  intro h
+  obtain ⟨r, hr, hpred⟩ := List.any_eq_true.mp h
+  simp [h_local_only r hr] at hpred
 
 /-- aws-bench: troubleshooting-multiservice/ecs-service-deployment-failure-diagnosis
     Reference: "desiredCount=0 (not a failure) + ECR empty + isolated subnets"
