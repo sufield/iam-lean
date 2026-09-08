@@ -11,6 +11,9 @@ name = "IamExplainer"
 [[lean_lib]]
 name = "IAMRules"
 
+[[lean_lib]]
+name = "AWSBench"
+
 [[lean_exe]]
 name = "iamlean"
 root = "Main"
