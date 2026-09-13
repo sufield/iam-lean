@@ -1,4 +1,6 @@
 import IamExplainer.Match
+import Stave.Controls.SGInbound
+import Stave.Controls.SSHReachable
 
 /-! Observation type stubs for aws-bench requirement formalization.
 
@@ -6,23 +8,10 @@ Each type represents the minimal config snapshot an evaluator needs
 to reproduce an aws-bench introspection diagnosis. Full definitions
 deferred to the broader security-kernel project.
 
-Every stub is marked with the aws-bench task(s) that require it. -/
+Every stub is marked with the aws-bench task(s) that require it.
 
--- STUB: aws-bench requirement (SG-related tasks)
-structure IngressRule where
-  fromPort      : Nat
-  toPort        : Nat
-  protocol      : String
-  cidrIp        : Option String
-  sourceGroupId : Option String
-deriving Repr, DecidableEq
-
--- STUB: aws-bench requirement (SG-related tasks)
-structure SecurityGroupObs where
-  groupId      : String
-  ingressRules : List IngressRule
-  attachedTo   : List String
-deriving Repr
+IngressRule, SecurityGroupObs, EC2InstanceObs, SubnetObs promoted
+to Stave/Obs.lean — available here via transitive import. -/
 
 -- STUB: aws-bench requirement (check-s-buckets-public-access)
 structure PublicAccessBlock where
@@ -46,27 +35,6 @@ structure S3BucketObs where
   metricsConfigs    : List String
   analyticsExportAccount : Option String
 
--- STUB: aws-bench requirement (EC2 instance tasks)
-structure EC2InstanceObs where
-  instanceId   : String
-  subnetId     : String
-  vpcId        : String
-  sgIds        : List String
-  publicIp     : Option String
-  amiId        : String
-  keyPairName  : Option String
-  ebsEncrypted : Bool
-  region       : String
-deriving Repr
-
--- STUB: aws-bench requirement (subnet/VPC tasks)
-structure SubnetObs where
-  subnetId      : String
-  vpcId         : String
-  cidr          : String
-  hasRouteToIgw : Bool
-  isDefault     : Bool := false
-deriving Repr, DecidableEq
 
 -- STUB: aws-bench requirement (VPC-level observation)
 structure VPCObs where
@@ -282,18 +250,10 @@ deriving Repr
 
 /-! Evaluation functions for aws-bench theorems. -/
 
-def sgAllowsInbound (sg : SecurityGroupObs) (port : Nat) (source : String) : Bool :=
-  sg.ingressRules.any fun r =>
-    r.fromPort ≤ port && port ≤ r.toPort && r.cidrIp == some source
-
 def isPubliclyAccessible (b : S3BucketObs) : Bool :=
   !(b.publicAccessBlock.ignorePublicAcls &&
     b.publicAccessBlock.blockPublicPolicy &&
     b.publicAccessBlock.restrictPublicBuckets)
-
-def isSshReachable (inst : EC2InstanceObs) (subnet : SubnetObs)
-    (sg : SecurityGroupObs) : Bool :=
-  inst.publicIp.isSome && subnet.hasRouteToIgw && sgAllowsInbound sg 22 "0.0.0.0/0"
 
 def naclAllows (rules : List NACLRule) (port : Nat) (source : String) : Bool :=
   let sorted := rules.mergeSort (fun a b => a.ruleNumber < b.ruleNumber)

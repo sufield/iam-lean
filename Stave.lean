@@ -1,5 +1,8 @@
 import Stave.CEL
+import Stave.Obs
 import Stave.Controls.SGIngress
+import Stave.Controls.SGInbound
+import Stave.Controls.SSHReachable
 import Stave.Controls.OrgTrail
 import Stave.Controls.SCPRegion
 import Stave.Controls.SCPRoot
@@ -8,6 +11,8 @@ import Stave.Controls.SCPTrailProtect
 import Stave.Controls.MFAEnforce
 import Stave.Controls.SCPInstanceType
 import Stave.Proofs.SGIngress
+import Stave.Proofs.SGInbound
+import Stave.Proofs.SSHReachable
 import Stave.Proofs.OrgTrail
 import Stave.Proofs.SCPRegion
 import Stave.Proofs.SCPRoot
