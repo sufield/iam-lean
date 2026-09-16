@@ -25,6 +25,7 @@ def square (x : Nat) (f : Nat → Nat) := f (f x)
 
 #eval (. + 1) <$> none
 
+
 -- Functor in action: Similar to [1, 2, 3].map {|x| x + 1 }
 -- A simple function that increments every number inside a Functor context
 def incrementContainer [Functor f] (container : f Nat) : f Nat :=
