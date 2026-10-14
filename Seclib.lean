@@ -4,3 +4,4 @@ import Seclib.Prim.Finding
 import Seclib.Prim.Glob
 import Seclib.Prim.Rule
 import Seclib.Domain
+import Seclib.Compose
