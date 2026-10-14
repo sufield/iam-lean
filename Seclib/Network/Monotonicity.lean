@@ -11,7 +11,9 @@ Therefore reachability is monotone in the rule set. -/
 -- 4a. Edge monotonicity (abstract form)
 -- ============================================================
 
-/-- If `any` holds on a list, it holds on a superset (append). -/
+/-- If `any` holds on a list, it holds on a superset (append).
+    Go source: reachability.go — CanReach uses List.any; this is the
+    abstract monotonicity principle underlying edge_monotone. -/
 theorem List.any_of_any_append_left {l₁ l₂ : List α} {p : α → Bool}
     (h : l₁.any p = true) : (l₁ ++ l₂).any p = true := by
   rw [List.any_eq_true] at h ⊢
@@ -20,8 +22,7 @@ theorem List.any_of_any_append_left {l₁ l₂ : List α} {p : α → Bool}
 
 /-- Abstract monotonicity: if a predicate holds when checking
     `any` over a set of rules, it still holds over a superset.
-    This is the core of edge_monotone — concrete graph operations
-    reduce to this. -/
+    Go source: reachability.go:36-51 — core of edge_monotone. -/
 theorem rule_check_mono {rules extra : List SGRule}
     {check : SGRule → Bool}
     (h : rules.any check = true) :
@@ -68,7 +69,8 @@ theorem isolation_sound (g : NetGraph) (dst : Host)
 -- ============================================================
 
 /-- A graph has a gated egress path if an isolated host can reach
-    a host whose subnet routes to a gated target. -/
+    a host whose subnet routes to a gated target.
+    Go source: proof.go:560-584 (EVIDENCE_GATED condition) -/
 def hasGatedEgressPath (g : NetGraph) : Prop :=
   ∃ iso srv, iso ∈ g.isolatedHosts ∧ ¬ srv.isIsolated ∧
     g.canReachAny iso srv ∧ hostEgressClass g srv = some .gated
@@ -90,7 +92,8 @@ theorem gated_not_unsat (g : NetGraph)
   simp only [hNoSink, hGated, ite_true]
   decide
 
-/-- Contrapositive: if verdict is UNSAT, no gated path exists. -/
+/-- Contrapositive: if verdict is UNSAT, no gated path exists.
+    Go source: proof.go:465 (verdict precedence). -/
 theorem unsat_no_gated (g : NetGraph)
     (h : transitiveEgressVerdict g = .unsat) :
     g.isolatedHosts.any (fun iso =>

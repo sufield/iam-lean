@@ -28,7 +28,8 @@ structure Counterexample where
   pathType : String
 deriving Repr
 
-/-- A proof result pairs a verdict with an optional counterexample. -/
+/-- A proof result pairs a verdict with an optional counterexample.
+    Go source: proof.go:11-21 -/
 structure ProofResult where
   property : String
   verdict : Verdict

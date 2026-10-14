@@ -18,7 +18,8 @@ An UNSAT verdict does NOT depend on layers 1-2 (sound over SG-ingress).
 This module exists to make the disclosure machine-checkable: any theorem
 about UNSAT must carry these assumptions explicitly. -/
 
-/-- The layers NOT modeled by the network prover. -/
+/-- The layers NOT modeled by the network prover.
+    Go source: proof.go:468-472, 589 (UNSAT interpretation text) -/
 inductive ExcludedLayer where
   | nacl
   | sgEgress
@@ -27,12 +28,12 @@ inductive ExcludedLayer where
   | routeState
 deriving DecidableEq, Repr
 
-/-- All excluded layers. -/
+/-- All excluded layers.
+    Go source: proof.go:468-472 -/
 def allExcludedLayers : List ExcludedLayer :=
   [.nacl, .sgEgress, .iamServicePath, .crossRegion, .routeState]
 
-/-- UNSAT is sound over the SG-ingress-only model. This is a type-level
-    marker: any proof of network isolation must acknowledge it operates
-    within the SG-ingress model, not the full network stack. -/
+/-- UNSAT is sound over the SG-ingress-only model. Type-level marker.
+    Go source: proof.go:468-472 (sound-over-SG-ingress disclaimer) -/
 structure SgIngressOnly where
   excludedLayers : List ExcludedLayer := allExcludedLayers

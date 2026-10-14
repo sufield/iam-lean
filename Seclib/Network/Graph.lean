@@ -119,18 +119,21 @@ def NetGraph.isolatedHosts (g : NetGraph) : List Host :=
 def NetGraph.privateSubnets (g : NetGraph) : List Subnet :=
   g.subnets.filter Subnet.isPrivate
 
-/-- Look up SG rules by SG ID. -/
+/-- Look up SG rules by SG ID.
+    Go source: graph.go:68-76 (Graph.SGRules map access) -/
 def NetGraph.rulesFor (g : NetGraph) (sgId : String) : List SGRule :=
   match g.sgRules.find? (fun p => p.1 == sgId) with
   | some (_, rules) => rules
   | none => []
 
-/-- Look up routes by route table ID. -/
+/-- Look up routes by route table ID.
+    Go source: graph.go:68-76 (Graph.Routes map access) -/
 def NetGraph.routesFor (g : NetGraph) (rtId : String) : List Route :=
   match g.routes.find? (fun p => p.1 == rtId) with
   | some (_, rs) => rs
   | none => []
 
-/-- Find subnet by ID. -/
+/-- Find subnet by ID.
+    Go source: graph.go:68-76 (Graph.Subnets map access) -/
 def NetGraph.findSubnet (g : NetGraph) (subnetId : String) : Option Subnet :=
   g.subnets.find? (fun s => s.id == subnetId)

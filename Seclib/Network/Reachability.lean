@@ -70,7 +70,8 @@ def NetGraph.hasExternalIngress (g : NetGraph) (dst : Host) (port : Nat) : Bool 
       rule.sourceType == "cidr" &&
       (rule.sourceValue == "0.0.0.0/0" || rule.sourceValue == "::/0")
 
-/-- Reachability as a Prop (for proofs). -/
+/-- Reachability as a Prop (for proofs).
+    Go source: reachability.go:26-71 (CanReach, lifted to Prop) -/
 def Reachable (g : NetGraph) (src dst : Host) (port : Nat) : Prop :=
   g.canReach src dst port = true
 
@@ -78,6 +79,7 @@ instance (g : NetGraph) (src dst : Host) (port : Nat) :
     Decidable (Reachable g src dst port) :=
   inferInstanceAs (Decidable (_ = true))
 
-/-- Any-port reachability as a Prop. -/
+/-- Any-port reachability as a Prop.
+    Go source: reachability.go:138-182 (canReachAnyPort, lifted to Prop) -/
 def ReachableAny (g : NetGraph) (src dst : Host) : Prop :=
   g.canReachAny src dst = true

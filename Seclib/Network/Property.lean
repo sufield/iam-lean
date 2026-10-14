@@ -49,7 +49,8 @@ def firewallMandatory (g : NetGraph) : Prop :=
       route.targetType ≠ "igw" ∨ route.targetId ∈ g.firewallEndpoints
 
 /-- Egress classification for a host: whether its subnet has a default
-    route to a sink, gated target, or neither. -/
+    route to a sink, gated target, or neither.
+    Go source: proof.go:490-522 (egress candidate classification) -/
 def hostEgressClass (g : NetGraph) (h : Host) : Option RouteClass :=
   match g.findSubnet h.subnetId with
   | none => none
@@ -60,14 +61,14 @@ def hostEgressClass (g : NetGraph) (h : Host) : Option RouteClass :=
     | some r => some (classifyRoute r.targetType)
     | none => none
 
-/-- No isolated workload can transitively reach the internet.
-    Go source: proof.go:473-592
-    Returns SAT if path to a sink, EVIDENCE_GATED if path to a gated
-    target, UNSAT otherwise. -/
+/-- Transitive egress SAT condition: isolated host reaches a sink.
+    Go source: proof.go:532-557 -/
 def transitiveEgressSat (g : NetGraph) : Prop :=
   ∃ iso srv, iso ∈ g.isolatedHosts ∧ ¬ srv.isIsolated ∧
     g.canReachAny iso srv ∧ hostEgressClass g srv = some .sink
 
+/-- Transitive egress EVIDENCE_GATED condition: isolated host reaches
+    a gated target. Go source: proof.go:560-584 -/
 def transitiveEgressGated (g : NetGraph) : Prop :=
   ∃ iso srv, iso ∈ g.isolatedHosts ∧ ¬ srv.isIsolated ∧
     g.canReachAny iso srv ∧ hostEgressClass g srv = some .gated
