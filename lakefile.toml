@@ -37,6 +37,10 @@ root = "Seclib.IAM.BridgeMain"
 name = "xaccount-bridge-check"
 root = "Seclib.CrossAccount.BridgeMain"
 
+[[lean_exe]]
+name = "celtype-bridge-check"
+root = "Seclib.Schema.BridgeMain"
+
 [[require]]
 name = "checkdecls"
 git = "https://github.com/PatrickMassot/checkdecls.git"
