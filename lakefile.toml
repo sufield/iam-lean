@@ -21,6 +21,10 @@ name = "Stave"
 name = "iamlean"
 root = "Main"
 
+[[lean_exe]]
+name = "bridge-check"
+root = "Seclib.Compose.BridgeMain"
+
 [[require]]
 name = "checkdecls"
 git = "https://github.com/PatrickMassot/checkdecls.git"
