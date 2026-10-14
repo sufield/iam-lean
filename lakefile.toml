@@ -25,6 +25,10 @@ root = "Main"
 name = "bridge-check"
 root = "Seclib.Compose.BridgeMain"
 
+[[lean_exe]]
+name = "network-bridge-check"
+root = "Seclib.Network.BridgeMain"
+
 [[require]]
 name = "checkdecls"
 git = "https://github.com/PatrickMassot/checkdecls.git"
