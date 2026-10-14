@@ -241,8 +241,8 @@ theorem grants_complete (sem : PolicySem S R Ctx)
   by_cases hd : (stmts.any fun s =>
       sem.effect s == .deny && sem.sat s req &&
       decide (sem.condEval ctx s = .t)) = true
-  · rw [if_pos hd] at h; exact absurd h (by decide)
-  · rw [if_neg hd] at h
+  · rw [ite_eq_left hd] at h; exact absurd h (by decide)
+  · rw [ite_eq_right hd] at h
     rw [allow_any_iff] at h
     exact h
 

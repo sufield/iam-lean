@@ -68,14 +68,14 @@ theorem denyOverrides_remove_allow_narrows (rules : List Rule) (i : Nat)
     have hde : ((rules.eraseIdx i).any fun r => r.decision == .deny && r.sat &&
         appliesOf r.decision r.applicability) = true := by
       rw [deny_any_rules_iff]; exact ⟨r, hr', hrd, hrm, hra⟩
-    rw [if_pos hde] at h; exact absurd h (by decide)
-  · rw [if_neg hd]
+    rw [ite_eq_left hde] at h; exact absurd h (by decide)
+  · rw [ite_eq_right hd]
     have hde : ¬((rules.eraseIdx i).any fun r => r.decision == .deny && r.sat &&
         appliesOf r.decision r.applicability) = true := by
       intro hc; apply hd; rw [deny_any_rules_iff] at hc ⊢
       obtain ⟨r, hr, hrd, hrm, hra⟩ := hc
       exact ⟨r, List.eraseIdx_subset hr, hrd, hrm, hra⟩
-    rw [if_neg hde] at h
+    rw [ite_eq_right hde] at h
     rw [allow_any_rules_iff] at h ⊢
     obtain ⟨r, hr, hra, hrm, hrap⟩ := h
     exact ⟨r, List.eraseIdx_subset hr, hra, hrm, hrap⟩
@@ -89,14 +89,14 @@ theorem denyOverrides_add_deny_narrows (rules : List Rule) (i : Nat)
   unfold denyOverridesRules at *
   by_cases hd : (rules.any fun r => r.decision == .deny && r.sat &&
       appliesOf r.decision r.applicability) = true
-  · rw [if_pos hd] at h; exact absurd h (by decide)
-  · rw [if_neg hd] at h
+  · rw [ite_eq_left hd] at h; exact absurd h (by decide)
+  · rw [ite_eq_right hd] at h
     have hde : ¬((rules.eraseIdx i).any fun r => r.decision == .deny && r.sat &&
         appliesOf r.decision r.applicability) = true := by
       intro hc; apply hd; rw [deny_any_rules_iff] at hc ⊢
       obtain ⟨r, hr, hrd, hrm, hra⟩ := hc
       exact ⟨r, List.eraseIdx_subset hr, hrd, hrm, hra⟩
-    rw [if_neg hde]
+    rw [ite_eq_right hde]
     rw [allow_any_rules_iff] at h ⊢
     obtain ⟨r, hr, hra, hrm, hrap⟩ := h
     have hne : r ≠ rules[i] := by
@@ -141,12 +141,12 @@ theorem appliesOf_unknown_conservative (rules rules_noCtx : List Rule)
       rw [deny_any_rules_iff]
       exact ⟨rules[k], List.getElem_mem hk', by rw [← hdec, hrd],
              by rw [← hsat, hrm], by rw [← hdec, hrd, hctx_t]; rfl⟩
-    rw [if_pos hDeny] at h; exact absurd h (by decide)
-  rw [if_neg hNoDenyNoCtx]
+    rw [ite_eq_left hDeny] at h; exact absurd h (by decide)
+  rw [ite_eq_right hNoDenyNoCtx]
   by_cases hDeny : (rules.any fun r => r.decision == .deny && r.sat &&
       appliesOf r.decision r.applicability) = true
-  · rw [if_pos hDeny] at h; exact absurd h (by decide)
-  · rw [if_neg hDeny] at h
+  · rw [ite_eq_left hDeny] at h; exact absurd h (by decide)
+  · rw [ite_eq_right hDeny] at h
     rw [allow_any_rules_iff] at h ⊢
     obtain ⟨r, hr_mem, hra, hrm, hrap⟩ := h
     obtain ⟨k, hk, hrk⟩ := List.mem_iff_getElem.mp hr_mem
