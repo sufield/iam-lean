@@ -35,3 +35,17 @@ theorem chainFires_mono (chain : ChainDef) (s t : List ControlId)
 theorem chainFires_add_one (chain : ChainDef) (s : List ControlId) (f : ControlId)
     (h : chainFires chain s) : chainFires chain (s ++ [f]) :=
   chainFires_mono chain s [f] h
+
+/-- Set-level monotonicity: the set of firing chains never shrinks
+    when the failing set grows. Every chain that fires on s also
+    fires on s ++ t.
+    This is the deliverable-4 property from the LEAN4-COMPOSE spec. -/
+theorem firingSet_mono (chains : List ChainDef) (s t : List ControlId) :
+    ∀ chain, chain ∈ chains → chainFires chain s → chainFires chain (s ++ t) :=
+  fun chain _ h => chainFires_mono chain s t h
+
+/-- failingCount is bounded by the chain's control count. -/
+theorem failingCount_le_length (chain : ChainDef) (failing : List ControlId) :
+    failingCount chain failing ≤ chain.controls.length := by
+  unfold failingCount
+  exact List.countP_le_length

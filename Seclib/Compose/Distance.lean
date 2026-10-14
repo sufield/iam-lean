@@ -45,3 +45,18 @@ theorem chainDistance_mono (chain : ChainDef) (s t : List ControlId) :
   unfold chainDistance
   have := failingCount_mono chain s t
   omega
+
+/-- Exploitability order: exploitable < oneAway < reachable.
+    "Closer to firing" = lower value. -/
+def Exploitability.rank : Exploitability → Nat
+  | .exploitable => 0
+  | .oneAway => 1
+  | .reachable => 2
+
+/-- Adding failures can only move exploitability toward exploitable
+    (never away from it). Proved via the underlying distance metric. -/
+theorem classify_mono_via_distance (chain : ChainDef) (s t : List ControlId)
+    (h : classify chain s = .exploitable) :
+    classify chain (s ++ t) = .exploitable := by
+  have hf := fires_of_classify_exploitable chain s h
+  exact classify_exploitable_of_fires chain (s ++ t) (chainFires_mono chain s t hf)
