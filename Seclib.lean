@@ -6,6 +6,8 @@ import Seclib.Prim.Rule
 import Seclib.Domain
 import Seclib.Compose
 import Seclib.Ghost
+import Seclib.Ghost.SMT
+import Seclib.Ghost.Datalog
 import Seclib.Network
 import Seclib.IAM
 import Seclib.CrossAccount
