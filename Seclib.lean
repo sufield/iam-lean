@@ -5,6 +5,7 @@ import Seclib.Prim.Glob
 import Seclib.Prim.Rule
 import Seclib.Domain
 import Seclib.Compose
+import Seclib.Ghost
 import Seclib.Network
 import Seclib.IAM
 import Seclib.CrossAccount

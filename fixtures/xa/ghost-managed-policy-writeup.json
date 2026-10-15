@@ -1,0 +1,5 @@
+{
+  "_ghost": true,
+  "_ghost_kind": "managed_policy",
+  "_ghost_arn": "arn:aws:iam::aws:policy/AdministratorAccess"
+}

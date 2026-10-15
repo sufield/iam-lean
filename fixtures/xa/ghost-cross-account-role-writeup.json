@@ -1,0 +1,6 @@
+{
+  "_ghost": true,
+  "_ghost_kind": "cross_account_role",
+  "_ghost_arn": "arn:aws:iam::999888777666:role/Audit",
+  "_ghost_account": "999888777666"
+}

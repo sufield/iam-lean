@@ -10,3 +10,6 @@ import IamExplainer.Report
 import IamExplainer.Emit
 import IamExplainer.Proofs
 import IamExplainer.Tests
+import IamExplainer.Ghost.Aws
+import IamExplainer.Ghost.Parse
+import IamExplainer.Ghost.XAGhost
