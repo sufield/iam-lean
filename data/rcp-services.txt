@@ -1,8 +1,0 @@
-s3
-sqs
-sns
-kms
-sts
-secretsmanager
-lambda
-logs

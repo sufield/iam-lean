@@ -1,5 +1,0 @@
-{
-  "needs": [
-    {"action": "iam:PassRole", "resource": "arn:aws:iam::111122223333:role/app"}
-  ]
-}

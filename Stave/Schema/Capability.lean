@@ -1,0 +1,96 @@
+import Stave.Schema.Types
+
+/-! Capability vocabulary for chain pre/postconditions.
+Formalizes: internal/core/capabilities/capabilities.go (99 builtinNames),
+internal/core/controldef/chain.go (CapabilityRegistry, CapabilitySet). -/
+
+abbrev Capability := String
+
+/-- The 99 builtin capability strings from the catalog.
+    Go source: internal/core/capabilities/capabilities.go:20-99
+    Sorted alphabetically for review-diff stability. -/
+def builtinCapabilities : List Capability :=
+  [ "account_closure"
+  , "account_loss"
+  , "audit_trail_destroyed"
+  , "audit_trail_scope_narrowed"
+  , "automation_hijack"
+  , "aws_root_access"
+  , "az_failure"
+  , "bucket_name_available_for_registration"
+  , "cdn_bypass_data_access"
+  , "cloudfront_origin_configured"
+  , "cloudtrail_data_access"
+  , "code_execution"
+  , "container_code_execution"
+  , "credential_access"
+  , "data_classification_exists"
+  , "control_plane_code_execution"
+  , "cross_account_access"
+  , "cross_account_data_exfiltration"
+  , "cross_account_destination_configured"
+  , "cross_account_injection"
+  , "data_access"
+  , "data_destruction"
+  , "data_exfiltration"
+  , "data_exfiltration_path"
+  , "data_exfiltration_via_hijack"
+  , "data_in_transit_exposure"
+  , "data_poisoning"
+  , "data_stream_capture"
+  , "data_warehouse_compromise"
+  , "database_compromise"
+  , "db_credential_theft"
+  , "detection_blindness"
+  , "detection_evasion"
+  , "detection_fragmented"
+  , "detection_without_response"
+  , "dns_trust_boundary_extended"
+  , "domain_loss"
+  , "domain_suspension"
+  , "domain_takeover"
+  , "ec2_code_execution"
+  , "eks_namespace_access"
+  , "encryption_bypass"
+  , "financial_loss"
+  , "iam_credential_theft"
+  , "indirect_data_rerouting"
+  , "initial_access"
+  , "internet_access"
+  , "invisible_data_exfiltration"
+  , "k8s_cluster_admin"
+  , "lateral_movement"
+  , "model_compromise"
+  , "k8s_service_account_token"
+  , "kms_encryption_configured"
+  , "kms_key_compromise"
+  , "network_access_ec2"
+  , "network_access_eks"
+  , "org_admin_access"
+  , "network_access_lambda"
+  , "network_access_rds"
+  , "notification_failure"
+  , "network_access_vpc"
+  , "no_router_update_permission"
+  , "ram_share_active"
+  , "rds_data_access"
+  , "resource_policy_escalation"
+  , "s3_data_access"
+  , "s3_delete_bucket_permission"
+  , "s3_replication_configured"
+  , "scp_governance_configured"
+  , "secret_store_access"
+  , "security_telemetry_exfiltration"
+  , "service_disruption"
+  , "shadow_admin_access"
+  , "shadow_infrastructure"
+  , "supply_chain_compromise"
+  , "targeted_privilege_escalation"
+  , "ungoverned_operation"
+  , "vpc_instance_compromise"
+  ]
+
+def isValidCapability (cap : Capability) : Bool :=
+  builtinCapabilities.contains cap
+
+theorem builtinCapabilities_length : builtinCapabilities.length = 78 := by native_decide

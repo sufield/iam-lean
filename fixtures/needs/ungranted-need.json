@@ -1,5 +1,0 @@
-{
-  "needs": [
-    {"action": "dynamodb:GetItem", "resource": "arn:aws:dynamodb:us-east-1:111122223333:table/my-table"}
-  ]
-}

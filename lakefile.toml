@@ -1,57 +1,29 @@
-name = "IamExplainer"
+name = "stave-lean"
 version = "0.1.0"
-defaultTargets = ["iamlean"]
-
-[[lean_lib]]
-name = "Seclib"
-
-[[lean_lib]]
-name = "IamExplainer"
-
-[[lean_lib]]
-name = "IAMRules"
-
-[[lean_lib]]
-name = "AWSBench"
+defaultTargets = ["Stave"]
 
 [[lean_lib]]
 name = "Stave"
 
 [[lean_exe]]
-name = "iamlean"
-root = "Main"
-
-[[lean_exe]]
 name = "bridge-check"
-root = "Seclib.Compose.BridgeMain"
+root = "Stave.Compose.BridgeMain"
 
 [[lean_exe]]
 name = "network-bridge-check"
-root = "Seclib.Network.BridgeMain"
+root = "Stave.Network.BridgeMain"
 
 [[lean_exe]]
 name = "iam-bridge-check"
-root = "Seclib.IAM.BridgeMain"
+root = "Stave.IAM.BridgeMain"
 
 [[lean_exe]]
 name = "xaccount-bridge-check"
-root = "Seclib.CrossAccount.BridgeMain"
+root = "Stave.CrossAccount.BridgeMain"
 
 [[lean_exe]]
 name = "celtype-bridge-check"
-root = "Seclib.Schema.BridgeMain"
-
-[[require]]
-name = "checkdecls"
-git = "https://github.com/PatrickMassot/checkdecls.git"
-rev = "master"
-scope = "dev"
-
-[[require]]
-name = "«doc-gen4»"
-git = "https://github.com/leanprover/doc-gen4"
-rev = "v4.33.1"
-scope = "dev"
+root = "Stave.Schema.BridgeMain"
 
 [[require]]
 name = "mathlib"
