@@ -2,8 +2,11 @@
 
 Lean 4 verification kernel for [Stave](https://github.com/sufield/stave).
 Machine-checked proofs that Stave's cloud security properties hold:
-composition monotonicity, network reachability, IAM privilege analysis,
-cross-account trust boundaries, and CEL predicate type safety.
+- composition monotonicity
+- network reachability
+- IAM privilege analysis
+- cross-account trust boundaries
+- CEL predicate type safety.
 
 If it builds, the proofs hold.
 
