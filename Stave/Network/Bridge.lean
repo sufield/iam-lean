@@ -12,6 +12,8 @@ parsing that stays in Go). -/
 
 open Lean (Json toJson FromJson)
 
+namespace Network.Bridge
+
 /-- A bridge record from the Go test suite. -/
 structure BridgeRecord where
   test : String
@@ -98,3 +100,5 @@ def bridgeCheck (path : System.FilePath) : IO UInt32 := do
   let content ← IO.FS.readFile path
   let records := parseJsonl content
   checkAll records
+
+end Network.Bridge

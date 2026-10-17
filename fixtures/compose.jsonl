@@ -1,0 +1,4 @@
+{"chain_id":"TRIAGE-S3-01","controls":["CTL.S3.001","CTL.S3.002","CTL.S3.003"],"threshold":2,"failing":["CTL.S3.001","CTL.S3.002"],"verdict":"fires","distance":0}
+{"chain_id":"TRIAGE-S3-02","controls":["CTL.S3.004","CTL.S3.005","CTL.S3.006"],"threshold":2,"failing":["CTL.S3.004"],"verdict":"near_miss","distance":1}
+{"chain_id":"TRIAGE-IAM-01","controls":["CTL.IAM.001","CTL.IAM.002","CTL.IAM.003","CTL.IAM.004"],"threshold":3,"failing":["CTL.IAM.001","CTL.IAM.002","CTL.IAM.003"],"verdict":"fires","distance":0}
+{"chain_id":"TRIAGE-EC2-01","controls":["CTL.EC2.001","CTL.EC2.002"],"threshold":2,"failing":[],"verdict":"near_miss","distance":2}

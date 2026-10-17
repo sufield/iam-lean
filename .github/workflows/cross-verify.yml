@@ -1,0 +1,56 @@
+name: Cross-Repo Verify
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cross-verify:
+    name: Verify against live Stave (Mode B)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: leanprover/lean4-action@v1
+        with:
+          auto-config: true
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Checkout Stave
+        uses: actions/checkout@v4
+        with:
+          repository: sufield/stave
+          path: stave-src
+          token: ${{ secrets.STAVE_ACCESS_TOKEN }}
+
+      - name: Build Stave
+        run: cd stave-src && make build
+
+      - name: Export fresh celtype JSONL
+        run: |
+          mkdir -p /tmp/fresh
+          cd stave-src && go run ./internal/tools/lean-celtype-bridge > /tmp/fresh/celtype.jsonl
+
+      - name: Build bridge CLI
+        run: lake build bridge-cli
+
+      - name: Verify fresh exports
+        run: .lake/build/bin/bridge-cli verify celtype /tmp/fresh/celtype.jsonl
+
+      - name: Check for fixture drift
+        run: |
+          FIXTURE_COUNT=$(wc -l < fixtures/celtype.jsonl)
+          FRESH_COUNT=$(wc -l < /tmp/fresh/celtype.jsonl)
+          echo "Fixture lines: $FIXTURE_COUNT, Fresh lines: $FRESH_COUNT"
+          if [ "$FIXTURE_COUNT" != "$FRESH_COUNT" ]; then
+            echo "::warning::Fixture line count drifted ($FIXTURE_COUNT → $FRESH_COUNT) — update fixtures"
+          fi

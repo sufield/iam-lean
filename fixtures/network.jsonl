@@ -1,0 +1,4 @@
+{"test":"sg-open-all","property":"reachability","verdict":"SAT"}
+{"test":"sg-restricted","property":"reachability","verdict":"UNSAT"}
+{"test":"sg-evidence-needed","property":"reachability","verdict":"EVIDENCE_GATED"}
+{"test":"sg-vacuous-input","property":"reachability","verdict":"VACUOUS"}

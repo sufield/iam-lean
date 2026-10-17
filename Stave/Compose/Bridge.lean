@@ -7,6 +7,8 @@ Go source: bridge_gen.py produces the JSONL; this module consumes it. -/
 
 open Lean (Json toJson FromJson)
 
+namespace Compose.Bridge
+
 structure BridgeRecord where
   chainId : String
   controls : List String
@@ -114,3 +116,5 @@ def bridgeCheck (path : System.FilePath) : IO UInt32 := do
   else
     IO.println "PASS: Lean and Go agree on all records"
     return 0
+
+end Compose.Bridge

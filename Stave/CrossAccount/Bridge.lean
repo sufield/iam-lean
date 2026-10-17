@@ -12,6 +12,8 @@ Two record types:
 
 open Lean (Json toJson FromJson)
 
+namespace XAccount.Bridge
+
 structure GrantRecord where
   scenario : String
   target : String
@@ -171,3 +173,5 @@ def bridgeCheck (path : System.FilePath) : IO UInt32 := do
   else
     IO.println "PASS: Lean cross-account model agrees on all records"
     return 0
+
+end XAccount.Bridge

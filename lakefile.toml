@@ -5,6 +5,13 @@ defaultTargets = ["Stave"]
 [[lean_lib]]
 name = "Stave"
 
+[[lean_lib]]
+name = "Bridge"
+
+[[lean_exe]]
+name = "bridge-cli"
+root = "BridgeCli.Main"
+
 [[lean_exe]]
 name = "bridge-check"
 root = "Stave.Compose.BridgeMain"

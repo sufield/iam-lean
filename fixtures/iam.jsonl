@@ -1,0 +1,3 @@
+{"principal":"dev-user","scenario":"attachRolePolicy","edges":[["dev-user","admin-role"]],"actions":[["dev-user","iam:AttachRolePolicy"]],"conditions":[],"expected_distance":2}
+{"principal":"readonly-user","scenario":"attachRolePolicy","edges":[],"actions":[],"conditions":[],"expected_distance":2}
+{"principal":"lambda-exec","scenario":"putRolePolicy","edges":[["lambda-exec","svc-role"],["svc-role","admin-role"]],"actions":[["lambda-exec","iam:PutRolePolicy"]],"conditions":[],"expected_distance":2}

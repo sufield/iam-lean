@@ -15,6 +15,8 @@ Record format (one JSON per line):
 
 open Lean (Json toJson FromJson)
 
+namespace IAM.Bridge
+
 /-- A bridge test record. -/
 structure BridgeRecord where
   principal : String
@@ -124,3 +126,5 @@ def bridgeCheck (path : System.FilePath) : IO UInt32 := do
   else
     IO.println "PASS: Lean IAM model agrees on all records"
     return 0
+
+end IAM.Bridge

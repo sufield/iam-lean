@@ -15,6 +15,8 @@ Four record kinds:
 
 open Lean (Json toJson FromJson)
 
+namespace CelType.Bridge
+
 structure CatalogSummaryRecord where
   controlCount : Nat
   assetTypeCount : Nat
@@ -230,3 +232,5 @@ def bridgeCheck (path : System.FilePath) : IO UInt32 := do
   else
     IO.println "PASS: Lean CEL type model agrees on all records"
     return 0
+
+end CelType.Bridge

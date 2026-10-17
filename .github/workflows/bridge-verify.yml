@@ -1,0 +1,31 @@
+name: Bridge Verify
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify fixtures (Mode A)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: leanprover/lean4-action@v1
+        with:
+          auto-config: true
+
+      - name: Build bridge CLI
+        run: lake build bridge-cli
+
+      - name: Verify all fixtures
+        run: .lake/build/bin/bridge-cli verify all fixtures/
+
+      - name: Check schema version
+        run: |
+          PINNED=$(cat fixtures/.schema-version)
+          echo "Pinned schema version: $PINNED"
+          .lake/build/bin/bridge-cli version
