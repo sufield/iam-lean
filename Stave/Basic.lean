@@ -28,11 +28,11 @@ instance : ToString Tri where
   | .f => .t
   | .u => .u
 
-@[grind] theorem Tri.and_tu (a b : Tri) (ha : a = .t ∨ a = .u) (hb : b = .t ∨ b = .u) :
+@[grind .] theorem Tri.and_tu (a b : Tri) (ha : a = .t ∨ a = .u) (hb : b = .t ∨ b = .u) :
     Tri.and a b = .t ∨ Tri.and a b = .u := by
   rcases ha with rfl | rfl <;> rcases hb with rfl | rfl <;> simp [Tri.and]
 
-@[grind] theorem Tri.and_eq_t {a b : Tri} : Tri.and a b = .t ↔ a = .t ∧ b = .t := by
+@[grind =] theorem Tri.and_eq_t {a b : Tri} : Tri.and a b = .t ↔ a = .t ∧ b = .t := by
   cases a <;> cases b <;> simp [Tri.and]
 
 inductive Effect where

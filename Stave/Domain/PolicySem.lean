@@ -80,9 +80,9 @@ theorem removeAllow (sem : PolicySem S R Ctx) (stmts : List S) (i : Nat)
         sem.effect s == .deny && sem.sat s req &&
         decide (sem.condEval ctx s = .t)) = true := by
       rw [deny_any_iff]; exact ⟨s, hsMem, hsd, hsm, hsc⟩
-    rw [if_pos hDenyErased] at h
+    rw [ite_eq_left hDenyErased] at h
     exact absurd h (by decide)
-  · rw [if_neg hDenyFull]
+  · rw [ite_eq_right hDenyFull]
     have hNoDenyErased : ¬((stmts.eraseIdx i).any fun s =>
         sem.effect s == .deny && sem.sat s req &&
         decide (sem.condEval ctx s = .t)) = true := by
@@ -90,7 +90,7 @@ theorem removeAllow (sem : PolicySem S R Ctx) (stmts : List S) (i : Nat)
       rw [deny_any_iff] at hc ⊢
       obtain ⟨s, hs, hsd, hsm, hsc⟩ := hc
       exact ⟨s, List.eraseIdx_subset hs, hsd, hsm, hsc⟩
-    rw [if_neg hNoDenyErased] at h
+    rw [ite_eq_right hNoDenyErased] at h
     rw [allow_any_iff] at h ⊢
     obtain ⟨s, hs, hsa, hsm, hsc⟩ := h
     exact ⟨s, List.eraseIdx_subset hs, hsa, hsm, hsc⟩
@@ -128,12 +128,12 @@ theorem narrow_narrows (sem : PolicySem S R Ctx)
       have hkj : k ≠ i := by intro heq; subst heq; exact hne hsk.symm
       rw [List.mem_iff_getElem]
       exact ⟨k, by rw [List.length_set]; exact hk,
-             by rw [List.getElem_set (by rw [List.length_set]; exact hk), if_neg (Ne.symm hkj)]; exact hsk⟩
+             by rw [List.getElem_set (by rw [List.length_set]; exact hk), ite_eq_right (Ne.symm hkj)]; exact hsk⟩
   rw [deny_inv] at h
   by_cases hDeny : (stmts.any fun s => sem.effect s == .deny && sem.sat s req &&
       decide (sem.condEval ctx s = .t)) = true
-  · rw [if_pos hDeny] at h; exact absurd h (by decide)
-  · rw [if_neg hDeny] at *
+  · rw [ite_eq_left hDeny] at h; exact absurd h (by decide)
+  · rw [ite_eq_right hDeny] at *
     rw [allow_any_iff] at h ⊢
     obtain ⟨s, hs_mem, hs_allow, hs_match, hs_cond⟩ := h
     rcases List.mem_or_eq_of_mem_set hs_mem with hs_orig | hs_new
@@ -191,9 +191,9 @@ theorem filterMap_narrows (sem : PolicySem S R Ctx)
   simp only [] at h ⊢
   by_cases hdf : ((stmts.filterMap f).any fun s => sem.effect s == .deny && sem.sat s req &&
       decide (sem.condEval ctx s = .t)) = true
-  · rw [if_pos hdf] at h; exact absurd h (by decide)
-  · rw [if_neg hdf] at h
-    rw [if_neg (fun hc => hdf (deny_forward sem stmts f req ctx h_deny hc))]
+  · rw [ite_eq_left hdf] at h; exact absurd h (by decide)
+  · rw [ite_eq_right hdf] at h
+    rw [ite_eq_right (fun hc => hdf (deny_forward sem stmts f req ctx h_deny hc))]
     exact allow_backward sem stmts f req ctx h_deny h_mono h
 
 /-! nocontext_conservative: if allowed under any context, allowed under noCtx -/
@@ -215,14 +215,14 @@ theorem nocontext_conservative (sem : PolicySem S R Ctx)
         sem.effect s' == .deny && sem.sat s' req &&
         decide (sem.condEval ctx s' = .t)) = true := by
       rw [deny_any_iff]; exact ⟨s, hs, hsd, hsm, hCtxT⟩
-    rw [if_pos hDenyCtx] at h
+    rw [ite_eq_left hDenyCtx] at h
     exact absurd h (by decide)
-  rw [if_neg hNoDenyNoCtx]
+  rw [ite_eq_right hNoDenyNoCtx]
   by_cases hDeny : (stmts.any fun s =>
       sem.effect s == .deny && sem.sat s req &&
       decide (sem.condEval ctx s = .t)) = true
-  · rw [if_pos hDeny] at h; exact absurd h (by decide)
-  · rw [if_neg hDeny] at h
+  · rw [ite_eq_left hDeny] at h; exact absurd h (by decide)
+  · rw [ite_eq_right hDeny] at h
     rw [allow_any_iff] at h ⊢
     obtain ⟨s, hs, heff, hmatch, _⟩ := h
     refine ⟨s, hs, heff, hmatch, ?_⟩
