@@ -67,7 +67,7 @@ theorem embed_set_equality
     verifies each capability is referenced by ≥1 chain via JSONL.
     Here we prove the vocabulary is non-empty and closed. -/
 
-theorem builtin_nonempty : builtinCapabilities.length > 0 := by native_decide
+theorem builtin_nonempty : builtinCapabilities.length > 0 := by decide
 
 theorem capability_membership (cap : String) :
     isValidCapability cap = true ↔ cap ∈ builtinCapabilities := by
@@ -84,7 +84,7 @@ def allOperators : List Operator :=
   , .contains, .anyMatch, .anyIdentityMatch, .anyInField
   ]
 
-theorem operator_count : allOperators.length = 17 := by native_decide
+theorem operator_count : allOperators.length = 17 := by decide
 
 theorem operator_exhaustive : ∀ op : Operator, op ∈ allOperators := by
   intro op; cases op <;> simp [allOperators] <;> omega

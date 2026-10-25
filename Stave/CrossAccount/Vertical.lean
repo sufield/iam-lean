@@ -13,8 +13,8 @@ def kmsGrantChain : ChainDef where
   controls := ["CTL.KMS.GRANT.EXTERNAL.001", "CTL.KMS.CROSSACCOUNT.BLASTRADIUS.001"]
   threshold := 2
   severity := .critical
-  hMin := by native_decide
-  hThreshBound := by native_decide
+  hMin := by decide
+  hThreshBound := by decide
 
 /-- S3 access point chain: AP policy grants external + bucket allows AP.
     Go source: CTL.S3.AP.POLICY.EXTERNAL.001, CTL.S3.AP.CROSSACCOUNT.BUCKET.001.
@@ -24,8 +24,8 @@ def s3APChain : ChainDef where
   controls := ["CTL.S3.AP.POLICY.EXTERNAL.001", "CTL.S3.AP.CROSSACCOUNT.BUCKET.001"]
   threshold := 2
   severity := .high
-  hMin := by native_decide
-  hThreshBound := by native_decide
+  hMin := by decide
+  hThreshBound := by decide
 
 /-- EKS access entry chain: external admin + pod identity external.
     Go source: CTL.EKS.ACCESSENTRY.EXTERNAL.ADMIN.001, CTL.EKS.PODIDENTITY.EXTERNAL.001.
@@ -35,8 +35,8 @@ def eksAccessChain : ChainDef where
   controls := ["CTL.EKS.ACCESSENTRY.EXTERNAL.ADMIN.001", "CTL.EKS.ACCESSENTRY.EXTERNAL.001", "CTL.EKS.PODIDENTITY.EXTERNAL.001"]
   threshold := 2
   severity := .critical
-  hMin := by native_decide
-  hThreshBound := by native_decide
+  hMin := by decide
+  hThreshBound := by decide
 
 /-- OIDC claim scoping chain: unscoped or org-wildcard claim.
     Go source: CTL.IAM.TRUST.OIDC.001 + CTL.IAM.TRUST.OIDC.ORGWILDCARD.001.
@@ -47,8 +47,8 @@ def oidcClaimChain : ChainDef where
   controls := ["CTL.IAM.TRUST.OIDC.001", "CTL.IAM.TRUST.OIDC.002", "CTL.IAM.TRUST.OIDC.003", "CTL.IAM.TRUST.EXTERNALID.001"]
   threshold := 2
   severity := .critical
-  hMin := by native_decide
-  hThreshBound := by native_decide
+  hMin := by decide
+  hThreshBound := by decide
 
 /-- Step-level decomposition: fixing any one step of a chain breaks it.
     This is the abstract property — proved in Monotonicity. -/

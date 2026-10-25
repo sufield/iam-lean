@@ -31,7 +31,3 @@ root = "Stave.CrossAccount.BridgeMain"
 [[lean_exe]]
 name = "celtype-bridge-check"
 root = "Stave.Schema.BridgeMain"
-
-[[require]]
-name = "mathlib"
-scope = "leanprover-community"

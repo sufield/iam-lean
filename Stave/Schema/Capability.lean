@@ -93,4 +93,4 @@ def builtinCapabilities : List Capability :=
 def isValidCapability (cap : Capability) : Bool :=
   builtinCapabilities.contains cap
 
-theorem builtinCapabilities_length : builtinCapabilities.length = 78 := by native_decide
+theorem builtinCapabilities_length : builtinCapabilities.length = 78 := by decide
