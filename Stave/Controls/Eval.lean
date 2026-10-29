@@ -78,13 +78,93 @@ def evalCloudTrailRegional (obs : CloudTrailObs) : EvalOutcome :=
   | some "trail", none       => .unevaluable
   | _, _                     => .clear
 
+-- CH2 Control 1: CTL.CLOUDFRONT.ACCESS.SIGNED.LONG.EXPIRY.001
+-- all: [kind=distribution, signed_url_default_expiry_seconds > 86400]
+def evalSignedLongExpiry (obs : CDNObs) : EvalOutcome :=
+  match obs.kind, obs.signed_url_default_expiry_seconds with
+  | some "distribution", some n => if n > 86400 then .«unsafe» else .clear
+  | some "distribution", none   => .unevaluable
+  | _, _                        => .clear
+
+-- CH2 Control 2: CTL.CLOUDFRONT.VIEWER.CERT.EXPIRY.WARN.001
+-- all: [kind=distribution, viewer_cert_days_until_expiry < 30]
+def evalCertExpiryWarn (obs : CDNObs) : EvalOutcome :=
+  match obs.kind, obs.viewer_cert_days_until_expiry with
+  | some "distribution", some n => if n < 30 then .«unsafe» else .clear
+  | some "distribution", none   => .unevaluable
+  | _, _                        => .clear
+
+-- CH2 Control 3: CTL.CLOUDFRONT.WAF.001
+-- all: [kind=distribution, waf_web_acl_id missing true]
+def evalCloudFrontWAF (obs : CDNObs) : EvalOutcome :=
+  match obs.kind, obs.waf_web_acl_id with
+  | some "distribution", none   => .«unsafe»
+  | some "distribution", some _ => .clear
+  | _, _                        => .clear
+
+-- CH2 Control 4: CTL.CLOUDFRONT.LIFECYCLE.ORPHAN.POLICY.001
+-- all: [kind in [cache_policy, response_headers_policy], policy_referenced=false]
+def evalOrphanPolicy (obs : CDNObs) : EvalOutcome :=
+  let kindMatch := match obs.kind with
+    | some "cache_policy" | some "response_headers_policy" => true
+    | _ => false
+  if !kindMatch then .clear
+  else match obs.policy_referenced with
+    | some false => .«unsafe»
+    | some true  => .clear
+    | none       => .unevaluable
+
+-- CH2 Control 5: CTL.VPC.ENDPOINT.KMS.EGRESS.001
+-- all: [kind=vpc_endpoint, service_name contains ".kms", restricts_to_org=false]
+def evalVPCEndpointKMS (obs : VPCEndpointObs) : EvalOutcome :=
+  match obs.kind with
+  | some "vpc_endpoint" =>
+    match obs.service_name with
+    | some name =>
+      if (name.splitOn ".kms").length > 1 then
+        match obs.restricts_to_org_resources with
+        | some false => .«unsafe»
+        | some true  => .clear
+        | none       => .unevaluable
+      else .clear
+    | none => .unevaluable
+  | _ => .clear
+
+-- CH2 Control 6: CTL.IAM.CRED.UNUSED45.001
+-- all: [kind=user, credentials.unused_days > 45]
+def evalCredUnused45 (obs : IAMUserObs) : EvalOutcome :=
+  match obs.kind, obs.credentials_unused_days with
+  | some "user", some n => if n > 45 then .«unsafe» else .clear
+  | some "user", none   => .unevaluable
+  | _, _                => .clear
+
+-- CH2 Control 7: CTL.IAM.ADMIN.COUNT.001
+-- all: [kind=account_summary, admin_user_count > 2]
+def evalAdminCount (obs : IAMSummaryObs) : EvalOutcome :=
+  match obs.kind, obs.admin_user_count with
+  | some "account_summary", some n => if n > 2 then .«unsafe» else .clear
+  | some "account_summary", none   => .unevaluable
+  | _, _                           => .clear
+
+-- CH2 Control 8: CTL.S3.GOVERNANCE.001
+-- all: [kind=bucket, tags.data-classification missing true]
+def evalS3Governance (obs : StorageObs) : EvalOutcome :=
+  match obs.kind, obs.data_classification with
+  | some "bucket", none   => .«unsafe»
+  | some "bucket", some _ => .clear
+  | _, _                  => .clear
+
 /-- Dispatch by control ID. Unknown control -> unevaluable (fail-closed). -/
 inductive TypedObs where
   | cloudtrail (obs : CloudTrailObs)
   | orgSCP (obs : OrgSCPObs)
   | iamAccount (obs : IAMAccountObs)
   | iamUser (obs : IAMUserObs)
+  | iamSummary (obs : IAMSummaryObs)
   | securityGroup (obs : SecurityGroupObs)
+  | cdn (obs : CDNObs)
+  | vpcEndpoint (obs : VPCEndpointObs)
+  | storage (obs : StorageObs)
   deriving Repr
 
 def evalTypedControl (ctrlId : ControlId) (obs : TypedObs) : ControlResult :=
@@ -97,5 +177,13 @@ def evalTypedControl (ctrlId : ControlId) (obs : TypedObs) : ControlResult :=
     | "CTL.IAM.CONSOLE.MFA.001", .iamUser o => evalConsoleMFA o
     | "CTL.VPC.SG.UNRESTRICTED.001", .securityGroup o => evalSGUnrestricted o
     | "CTL.CLOUDTRAIL.REGIONAL.COVERAGE.001", .cloudtrail o => evalCloudTrailRegional o
+    | "CTL.CLOUDFRONT.ACCESS.SIGNED.LONG.EXPIRY.001", .cdn o => evalSignedLongExpiry o
+    | "CTL.CLOUDFRONT.VIEWER.CERT.EXPIRY.WARN.001", .cdn o => evalCertExpiryWarn o
+    | "CTL.CLOUDFRONT.WAF.001", .cdn o => evalCloudFrontWAF o
+    | "CTL.CLOUDFRONT.LIFECYCLE.ORPHAN.POLICY.001", .cdn o => evalOrphanPolicy o
+    | "CTL.VPC.ENDPOINT.KMS.EGRESS.001", .vpcEndpoint o => evalVPCEndpointKMS o
+    | "CTL.IAM.CRED.UNUSED45.001", .iamUser o => evalCredUnused45 o
+    | "CTL.IAM.ADMIN.COUNT.001", .iamSummary o => evalAdminCount o
+    | "CTL.S3.GOVERNANCE.001", .storage o => evalS3Governance o
     | _, _ => EvalOutcome.unevaluable
   { controlId := ctrlId, outcome := outcome }

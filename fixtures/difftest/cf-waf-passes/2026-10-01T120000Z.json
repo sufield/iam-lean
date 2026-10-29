@@ -1,0 +1,21 @@
+{
+  "schema_version": "obs.v0.1",
+  "captured_at": "2026-10-01T12:00:00Z",
+  "source": "deployed",
+  "generated_by": {
+    "source_type": "synthetic.difftest"
+  },
+  "assets": [
+    {
+      "id": "dist-006",
+      "type": "aws_cloudfront_distribution",
+      "vendor": "aws",
+      "properties": {
+        "cdn": {
+          "kind": "distribution",
+          "waf_web_acl_id": "arn:aws:wafv2:us-east-1:111111111111:global/webacl/test/abc123"
+        }
+      }
+    }
+  ]
+}

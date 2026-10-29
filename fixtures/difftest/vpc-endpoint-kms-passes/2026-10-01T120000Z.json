@@ -1,0 +1,26 @@
+{
+  "schema_version": "obs.v0.1",
+  "captured_at": "2026-10-01T12:00:00Z",
+  "source": "deployed",
+  "generated_by": {
+    "source_type": "synthetic.difftest"
+  },
+  "assets": [
+    {
+      "id": "vpce-0kms002",
+      "type": "aws_vpc_endpoint",
+      "vendor": "aws",
+      "properties": {
+        "network": {
+          "kind": "vpc_endpoint",
+          "vpc_endpoint": {
+            "service_name": "com.amazonaws.us-east-1.kms"
+          },
+          "endpoint_policy": {
+            "restricts_to_org_resources": true
+          }
+        }
+      }
+    }
+  ]
+}

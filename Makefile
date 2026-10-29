@@ -33,7 +33,15 @@ DIFFTEST_CASES := \
 	cloudtrail-logval:CTL.CLOUDTRAIL.LOG.VALIDATION.001 \
 	iam-console-mfa:CTL.IAM.CONSOLE.MFA.001 \
 	vpc-sg-unrestricted:CTL.VPC.SG.UNRESTRICTED.001 \
-	cloudtrail-regional:CTL.CLOUDTRAIL.REGIONAL.COVERAGE.001
+	cloudtrail-regional:CTL.CLOUDTRAIL.REGIONAL.COVERAGE.001 \
+	cf-signed-expiry:CTL.CLOUDFRONT.ACCESS.SIGNED.LONG.EXPIRY.001 \
+	cf-cert-expiry:CTL.CLOUDFRONT.VIEWER.CERT.EXPIRY.WARN.001 \
+	cf-waf:CTL.CLOUDFRONT.WAF.001 \
+	cf-orphan-policy:CTL.CLOUDFRONT.LIFECYCLE.ORPHAN.POLICY.001 \
+	vpc-endpoint-kms:CTL.VPC.ENDPOINT.KMS.EGRESS.001 \
+	iam-cred-unused45:CTL.IAM.CRED.UNUSED45.001 \
+	iam-admin-count:CTL.IAM.ADMIN.COUNT.001 \
+	s3-governance:CTL.S3.GOVERNANCE.001
 
 difftest: lean-build
 	@lake build difftest

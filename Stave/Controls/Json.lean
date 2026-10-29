@@ -26,6 +26,11 @@ private def getOptStr (j : Json) (key : String) : Option String :=
   | .ok v => some v
   | .error _ => none
 
+private def getOptNat (j : Json) (key : String) : Option Nat :=
+  match j.getObjValAs? Nat key with
+  | .ok v => some v
+  | .error _ => none
+
 private def getObj (j : Json) (key : String) : Json :=
   match j.getObjValAs? Json key with
   | .ok v => v
@@ -69,10 +74,12 @@ instance : FromJson IAMUserObs where
     let props := getObj j "properties"
     let identity := getObj props "identity"
     let consoleAccess := getObj identity "console_access"
+    let credentials := getObj identity "credentials"
     pure {
       kind := getOptStr identity "kind"
       console_access_enabled := getOptBool consoleAccess "enabled"
       console_access_mfa_enabled := getOptBool consoleAccess "mfa_enabled"
+      credentials_unused_days := getOptNat credentials "unused_days"
     }
 
 instance : FromJson SecurityGroupObs where
@@ -83,6 +90,50 @@ instance : FromJson SecurityGroupObs where
     pure {
       kind := getOptStr network "kind"
       has_unrestricted_ingress := getOptBool sg "has_unrestricted_ingress"
+    }
+
+instance : FromJson IAMSummaryObs where
+  fromJson? j := do
+    let props := getObj j "properties"
+    let identity := getObj props "identity"
+    pure {
+      kind := getOptStr identity "kind"
+      admin_user_count := getOptNat identity "admin_user_count"
+    }
+
+instance : FromJson CDNObs where
+  fromJson? j := do
+    let props := getObj j "properties"
+    let cdn := getObj props "cdn"
+    let cf := getObj cdn "cloudfront"
+    pure {
+      kind := getOptStr cdn "kind"
+      signed_url_default_expiry_seconds := getOptNat cf "signed_url_default_expiry_seconds"
+      viewer_cert_days_until_expiry := getOptNat cf "viewer_cert_days_until_expiry"
+      waf_web_acl_id := getOptStr cdn "waf_web_acl_id"
+      policy_referenced := getOptBool cf "policy_referenced"
+    }
+
+instance : FromJson VPCEndpointObs where
+  fromJson? j := do
+    let props := getObj j "properties"
+    let network := getObj props "network"
+    let endpoint := getObj network "vpc_endpoint"
+    let policy := getObj network "endpoint_policy"
+    pure {
+      kind := getOptStr network "kind"
+      service_name := getOptStr endpoint "service_name"
+      restricts_to_org_resources := getOptBool policy "restricts_to_org_resources"
+    }
+
+instance : FromJson StorageObs where
+  fromJson? j := do
+    let props := getObj j "properties"
+    let storage := getObj props "storage"
+    let tags := getObj storage "tags"
+    pure {
+      kind := getOptStr storage "kind"
+      data_classification := getOptStr tags "data-classification"
     }
 
 -- ponytail: TypedObs FromJson dispatches by which property bag exists in the asset.
@@ -96,9 +147,22 @@ instance : FromJson TypedObs where
     else if (getObj props "organization") != .null then
       let obs ← @FromJson.fromJson? OrgSCPObs _ j
       pure (.orgSCP obs)
+    else if (getObj props "cdn") != .null then
+      let obs ← @FromJson.fromJson? CDNObs _ j
+      pure (.cdn obs)
+    else if (getObj props "storage") != .null then
+      let obs ← @FromJson.fromJson? StorageObs _ j
+      pure (.storage obs)
     else if (getObj props "network") != .null then
-      let obs ← @FromJson.fromJson? SecurityGroupObs _ j
-      pure (.securityGroup obs)
+      let network := getObj props "network"
+      let kind := getOptStr network "kind"
+      match kind with
+      | some "vpc_endpoint" =>
+        let obs ← @FromJson.fromJson? VPCEndpointObs _ j
+        pure (.vpcEndpoint obs)
+      | _ =>
+        let obs ← @FromJson.fromJson? SecurityGroupObs _ j
+        pure (.securityGroup obs)
     else if (getObj props "identity") != .null then
       let identity := getObj props "identity"
       let kind := getOptStr identity "kind"
@@ -109,6 +173,9 @@ instance : FromJson TypedObs where
       | some "user" =>
         let obs ← @FromJson.fromJson? IAMUserObs _ j
         pure (.iamUser obs)
+      | some "account_summary" =>
+        let obs ← @FromJson.fromJson? IAMSummaryObs _ j
+        pure (.iamSummary obs)
       | _ => .error s!"unknown identity kind: {kind}"
     else
       .error "no recognized property bag in asset JSON"

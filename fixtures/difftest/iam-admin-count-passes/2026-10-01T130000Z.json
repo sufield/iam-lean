@@ -1,0 +1,21 @@
+{
+  "schema_version": "obs.v0.1",
+  "captured_at": "2026-10-01T13:00:00Z",
+  "source": "deployed",
+  "generated_by": {
+    "source_type": "synthetic.difftest"
+  },
+  "assets": [
+    {
+      "id": "222222222222/summary",
+      "type": "aws_iam_user",
+      "vendor": "aws",
+      "properties": {
+        "identity": {
+          "kind": "account_summary",
+          "admin_user_count": 1
+        }
+      }
+    }
+  ]
+}

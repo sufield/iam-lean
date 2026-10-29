@@ -131,6 +131,104 @@ theorem wrong_kind_cloudtrail :
 theorem wrong_kind_sg :
     (evalSGUnrestricted { kind := some "not_sg" }).fires = false := by native_decide
 
+-- CH2 Control 1: CloudFront signed URL long expiry (gt)
+theorem signed_long_expiry_unsafe :
+    (evalSignedLongExpiry { kind := some "distribution",
+                            signed_url_default_expiry_seconds := some 172800 }).fires = true := by native_decide
+
+theorem signed_long_expiry_safe :
+    (evalSignedLongExpiry { kind := some "distribution",
+                            signed_url_default_expiry_seconds := some 3600 }).fires = false := by native_decide
+
+theorem signed_long_expiry_failclosed :
+    (evalSignedLongExpiry { kind := some "distribution" }).fires = true := by native_decide
+
+-- CH2 Control 2: CloudFront cert expiry warn (lt)
+theorem cert_expiry_warn_unsafe :
+    (evalCertExpiryWarn { kind := some "distribution",
+                          viewer_cert_days_until_expiry := some 15 }).fires = true := by native_decide
+
+theorem cert_expiry_warn_safe :
+    (evalCertExpiryWarn { kind := some "distribution",
+                          viewer_cert_days_until_expiry := some 90 }).fires = false := by native_decide
+
+theorem cert_expiry_warn_failclosed :
+    (evalCertExpiryWarn { kind := some "distribution" }).fires = true := by native_decide
+
+-- CH2 Control 3: CloudFront WAF (missing)
+theorem cloudfront_waf_unsafe :
+    (evalCloudFrontWAF { kind := some "distribution" }).fires = true := by native_decide
+
+theorem cloudfront_waf_safe :
+    (evalCloudFrontWAF { kind := some "distribution",
+                          waf_web_acl_id := some "arn:aws:wafv2:..." }).fires = false := by native_decide
+
+-- CH2 Control 4: CloudFront orphan policy (in)
+theorem orphan_policy_unsafe :
+    (evalOrphanPolicy { kind := some "cache_policy",
+                         policy_referenced := some false }).fires = true := by native_decide
+
+theorem orphan_policy_safe :
+    (evalOrphanPolicy { kind := some "response_headers_policy",
+                         policy_referenced := some true }).fires = false := by native_decide
+
+theorem orphan_policy_failclosed :
+    (evalOrphanPolicy { kind := some "cache_policy" }).fires = true := by native_decide
+
+theorem orphan_policy_wrong_kind :
+    (evalOrphanPolicy { kind := some "distribution" }).fires = false := by native_decide
+
+-- CH2 Control 5: VPC endpoint KMS (contains)
+theorem vpc_endpoint_kms_unsafe :
+    (evalVPCEndpointKMS { kind := some "vpc_endpoint",
+                           service_name := some "com.amazonaws.us-east-1.kms",
+                           restricts_to_org_resources := some false }).fires = true := by native_decide
+
+theorem vpc_endpoint_kms_safe :
+    (evalVPCEndpointKMS { kind := some "vpc_endpoint",
+                           service_name := some "com.amazonaws.us-east-1.kms",
+                           restricts_to_org_resources := some true }).fires = false := by native_decide
+
+theorem vpc_endpoint_kms_failclosed :
+    (evalVPCEndpointKMS { kind := some "vpc_endpoint",
+                           service_name := some "com.amazonaws.us-east-1.kms" }).fires = true := by native_decide
+
+theorem vpc_endpoint_kms_wrong_service :
+    (evalVPCEndpointKMS { kind := some "vpc_endpoint",
+                           service_name := some "com.amazonaws.us-east-1.s3" }).fires = false := by native_decide
+
+-- CH2 Control 6: IAM credential unused 45 days (gt)
+theorem cred_unused45_unsafe :
+    (evalCredUnused45 { kind := some "user",
+                         credentials_unused_days := some 90 }).fires = true := by native_decide
+
+theorem cred_unused45_safe :
+    (evalCredUnused45 { kind := some "user",
+                         credentials_unused_days := some 30 }).fires = false := by native_decide
+
+theorem cred_unused45_failclosed :
+    (evalCredUnused45 { kind := some "user" }).fires = true := by native_decide
+
+-- CH2 Control 7: IAM admin count (gt)
+theorem admin_count_unsafe :
+    (evalAdminCount { kind := some "account_summary",
+                       admin_user_count := some 5 }).fires = true := by native_decide
+
+theorem admin_count_safe :
+    (evalAdminCount { kind := some "account_summary",
+                       admin_user_count := some 1 }).fires = false := by native_decide
+
+theorem admin_count_failclosed :
+    (evalAdminCount { kind := some "account_summary" }).fires = true := by native_decide
+
+-- CH2 Control 8: S3 governance tag (missing)
+theorem s3_governance_unsafe :
+    (evalS3Governance { kind := some "bucket" }).fires = true := by native_decide
+
+theorem s3_governance_safe :
+    (evalS3Governance { kind := some "bucket",
+                         data_classification := some "internal" }).fires = false := by native_decide
+
 -- Dispatch: unknown control ID -> unevaluable -> fires
 theorem unknown_control_failclosed :
     (evalTypedControl "CTL.UNKNOWN.999" (.cloudtrail {})).outcome.fires = true := by native_decide

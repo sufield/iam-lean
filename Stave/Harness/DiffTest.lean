@@ -29,6 +29,14 @@ def controlObsType : String → String
   | "CTL.IAM.CONSOLE.MFA.001" => "iam_user"
   | "CTL.VPC.SG.UNRESTRICTED.001" => "sg"
   | "CTL.CLOUDTRAIL.REGIONAL.COVERAGE.001" => "cloudtrail"
+  | "CTL.CLOUDFRONT.ACCESS.SIGNED.LONG.EXPIRY.001" => "cdn"
+  | "CTL.CLOUDFRONT.VIEWER.CERT.EXPIRY.WARN.001" => "cdn"
+  | "CTL.CLOUDFRONT.WAF.001" => "cdn"
+  | "CTL.CLOUDFRONT.LIFECYCLE.ORPHAN.POLICY.001" => "cdn"
+  | "CTL.VPC.ENDPOINT.KMS.EGRESS.001" => "vpc_endpoint"
+  | "CTL.IAM.CRED.UNUSED45.001" => "iam_user"
+  | "CTL.IAM.ADMIN.COUNT.001" => "iam_summary"
+  | "CTL.S3.GOVERNANCE.001" => "storage"
   | _ => "unknown"
 
 def assetMatchesControl (assetJson : Json) (controlId : String) : Bool :=
@@ -60,6 +68,24 @@ def assetMatchesControl (assetJson : Json) (controlId : String) : Bool :=
     let n := match props.getObjValAs? Json "network" with
       | .ok v => v | .error _ => .null
     n != .null
+  | "cdn" =>
+    let c := match props.getObjValAs? Json "cdn" with
+      | .ok v => v | .error _ => .null
+    c != .null
+  | "vpc_endpoint" =>
+    let n := match props.getObjValAs? Json "network" with
+      | .ok v => v | .error _ => .null
+    match n.getObjValAs? String "kind" with
+    | .ok "vpc_endpoint" => true | _ => false
+  | "iam_summary" =>
+    let id := match props.getObjValAs? Json "identity" with
+      | .ok v => v | .error _ => .null
+    match id.getObjValAs? String "kind" with
+    | .ok "account_summary" => true | _ => false
+  | "storage" =>
+    let s := match props.getObjValAs? Json "storage" with
+      | .ok v => v | .error _ => .null
+    s != .null
   | _ => false
 
 def evalAsset (assetJson : Json) (controlId : String) : Except String DiffResult := do
