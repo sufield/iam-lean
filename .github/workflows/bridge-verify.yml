@@ -18,6 +18,7 @@ jobs:
         uses: leanprover/lean-action@v1
         with:
           test: false
+          use-mathlib-cache: false
 
       - name: Build bridge CLI
         run: lake build bridge-cli
