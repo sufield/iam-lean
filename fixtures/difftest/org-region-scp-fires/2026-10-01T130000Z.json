@@ -1,0 +1,23 @@
+{
+  "schema_version": "obs.v0.1",
+  "captured_at": "2026-10-01T13:00:00Z",
+  "source": "deployed",
+  "generated_by": {
+    "source_type": "synthetic.difftest"
+  },
+  "assets": [
+    {
+      "id": "o-test/scp",
+      "type": "aws_organization",
+      "vendor": "aws",
+      "properties": {
+        "organization": {
+          "kind": "scp_policy_set",
+          "region_restriction": {
+            "has_scp": false
+          }
+        }
+      }
+    }
+  ]
+}

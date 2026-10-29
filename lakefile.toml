@@ -31,3 +31,7 @@ root = "Stave.CrossAccount.BridgeMain"
 [[lean_exe]]
 name = "celtype-bridge-check"
 root = "Stave.Schema.BridgeMain"
+
+[[lean_exe]]
+name = "difftest"
+root = "Stave.Harness.DiffTest"
