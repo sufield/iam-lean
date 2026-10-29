@@ -5,6 +5,7 @@ import Stave.Basic.Glob
 import Stave.Basic.Rule
 import Stave.Domain
 import Stave.Compose
+import Stave.Evaluate
 import Stave.Ghost
 import Stave.Ghost.SMT
 import Stave.Ghost.Datalog
