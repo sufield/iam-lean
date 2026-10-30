@@ -155,19 +155,17 @@ fixtures.
 
 **Depends on:** L1, L4
 
-## Sequencing
+## Implementation Status
 
-```
-Week 1-2:  L1 (Typed AST)         — foundation, no disruption to existing code
-Week 3:    L4 (CelResult)         — enriches existing evaluators, parallel to L1
-Week 4-5:  L2 (Macro)             — requires L1; immediate payoff for new controls
-Week 6-7:  L3 (∀-proofs)          — requires L1; hardens existing 16 controls
-Week 8-9:  L5 (Verified compile)  — requires L1 + L4; the capstone
-```
+All five layers complete. Zero sorry, 32/32 differential tests, 118 build jobs.
 
-L4 can run parallel to L1 since it only touches `Evaluate/Observation.lean`
-and `Controls/Eval.lean`, not the new `CEL/` module. Merge L4 before L5
-starts.
+| Layer | Commit | Lines | Key Result |
+|-------|--------|-------|------------|
+| L1 | `2f68270` | ~292 | `type_safety`, `no_unevaluable_on_conforming` |
+| L4 | `2f68270` | ~150 | `CelResult` monad, `evalResult_to_option` consistency |
+| L2 | `2c26ec9` | ~217 | 14 syntax forms, compound recursion, 20 known-answer tests |
+| L3 | `d72b863` | ~342 | 26 ∀-quantified theorems, chain bridge |
+| L5 | `68868a0` | ~119 | `compile` total, round-trip on 8+3 expressions |
 
 ## File Layout
 
