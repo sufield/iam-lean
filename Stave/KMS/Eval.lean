@@ -161,6 +161,152 @@ def evalKMSSeparation (obs : KMSKeyObs) : EvalOutcome :=
   | some _ => .clear
   | none   => .unevaluable
 
+-- ===== KMS-P2: Policy controls (11 new) =====
+
+-- CTL.KMS.POLICY.001
+-- all: [kind=key, policy.has_wildcard_principal=true]
+def evalKMSPolicyWildcard (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "key" =>
+    match obs.policy.has_wildcard_principal with
+    | some true  => .«unsafe»
+    | some false => .clear
+    | none       => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.POLICY.ADMIN.BROAD.001
+-- all: [kind=key, policy.admin_actions_broadly_granted=true]
+def evalKMSPolicyAdminBroad (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "key" =>
+    match obs.policy.admin_actions_broadly_granted with
+    | some true  => .«unsafe»
+    | some false => .clear
+    | none       => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.POLICY.CONDITION.001
+-- all: [kind=key, policy.has_usage_conditions=false]
+def evalKMSPolicyCondition (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "key" =>
+    match obs.policy.has_usage_conditions with
+    | some false => .«unsafe»
+    | some true  => .clear
+    | none       => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.POLICY.CROSSACCOUNT.001
+-- all: [kind=key, policy.has_broad_cross_account=true]
+def evalKMSPolicyCrossAccount (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "key" =>
+    match obs.policy.has_broad_cross_account with
+    | some true  => .«unsafe»
+    | some false => .clear
+    | none       => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.POLICY.DECRYPT.BROAD.001
+-- all: [kind=key, is_aws_managed=false, policy.decrypt_broadly_granted=true]
+def evalKMSPolicyDecryptBroad (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "key" =>
+    match obs.is_aws_managed with
+    | some false =>
+      match obs.policy.decrypt_broadly_granted with
+      | some true  => .«unsafe»
+      | some false => .clear
+      | none       => .unevaluable
+    | some true => .clear
+    | none      => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.POLICY.ENCLAVE.NOPCR.001
+-- all: [kind=key, tags.enclave_protected=true, policy.enclave_attestation.has_pcr_condition=false]
+def evalKMSPolicyEnclaveNoPcr (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "key" =>
+    match obs.tags.enclave_protected with
+    | some true =>
+      match obs.enclave_attestation.has_pcr_condition with
+      | some false => .«unsafe»
+      | some true  => .clear
+      | none       => .unevaluable
+    | some false => .clear
+    | none       => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.POLICY.GHOSTREF.001
+-- all: [kind=key, policy.has_ghost_principal=true]
+def evalKMSPolicyGhostRef (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "key" =>
+    match obs.policy.has_ghost_principal with
+    | some true  => .«unsafe»
+    | some false => .clear
+    | none       => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.POLICY.GRANTWITHGRANT.001
+-- all: [kind=key, policy.allows_grant_with_grant=true]
+def evalKMSPolicyGrantWithGrant (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "key" =>
+    match obs.policy.allows_grant_with_grant with
+    | some true  => .«unsafe»
+    | some false => .clear
+    | none       => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.POLICY.NOCONTEXT.001
+-- all: [kind=key, policy.requires_encryption_context=false]
+def evalKMSPolicyNoContext (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "key" =>
+    match obs.policy.requires_encryption_context with
+    | some false => .«unsafe»
+    | some true  => .clear
+    | none       => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.POLICY.NOVIASERVICE.001
+-- all: [kind=key, key_usage=ENCRYPT_DECRYPT, policy.has_via_service=false]
+def evalKMSPolicyNoViaService (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "key" =>
+    match obs.key_usage with
+    | some "ENCRYPT_DECRYPT" =>
+      match obs.policy.has_via_service with
+      | some false => .«unsafe»
+      | some true  => .clear
+      | none       => .unevaluable
+    | some _ => .clear
+    | none   => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.POLICY.ROOT.PRINCIPAL.001
+-- all: [kind=key, policy.has_root_principal_full_access=true]
+def evalKMSPolicyRootPrincipal (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "key" =>
+    match obs.policy.has_root_principal_full_access with
+    | some true  => .«unsafe»
+    | some false => .clear
+    | none       => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
 /-- Dispatch KMS control ID to evaluator. Unknown → unevaluable (fail-closed). -/
 def evalKMSControl (ctrlId : ControlId) (obs : KMSKeyObs) : ControlResult :=
   let outcome := match ctrlId with
@@ -176,5 +322,16 @@ def evalKMSControl (ctrlId : ControlId) (obs : KMSKeyObs) : ControlResult :=
     | "CTL.KMS.FIPS.001"                      => evalKMSFips obs
     | "CTL.KMS.INCOMPLETE.001"                => evalKMSIncomplete obs
     | "CTL.KMS.SEPARATION.001"                => evalKMSSeparation obs
+    | "CTL.KMS.POLICY.001"                    => evalKMSPolicyWildcard obs
+    | "CTL.KMS.POLICY.ADMIN.BROAD.001"        => evalKMSPolicyAdminBroad obs
+    | "CTL.KMS.POLICY.CONDITION.001"          => evalKMSPolicyCondition obs
+    | "CTL.KMS.POLICY.CROSSACCOUNT.001"       => evalKMSPolicyCrossAccount obs
+    | "CTL.KMS.POLICY.DECRYPT.BROAD.001"      => evalKMSPolicyDecryptBroad obs
+    | "CTL.KMS.POLICY.ENCLAVE.NOPCR.001"      => evalKMSPolicyEnclaveNoPcr obs
+    | "CTL.KMS.POLICY.GHOSTREF.001"           => evalKMSPolicyGhostRef obs
+    | "CTL.KMS.POLICY.GRANTWITHGRANT.001"     => evalKMSPolicyGrantWithGrant obs
+    | "CTL.KMS.POLICY.NOCONTEXT.001"          => evalKMSPolicyNoContext obs
+    | "CTL.KMS.POLICY.NOVIASERVICE.001"       => evalKMSPolicyNoViaService obs
+    | "CTL.KMS.POLICY.ROOT.PRINCIPAL.001"     => evalKMSPolicyRootPrincipal obs
     | _ => EvalOutcome.unevaluable
   (ControlResult.mk ctrlId outcome : ControlResult)

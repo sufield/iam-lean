@@ -188,6 +188,150 @@ theorem kms_wrong_kind_rotation :
 theorem kms_wrong_kind_disabled :
     (evalKMSStateDisabled { kind := some "grant" }).fires = false := by native_decide
 
+-- ===== KMS-P2: Policy controls =====
+
+-- CTL.KMS.POLICY.001
+theorem kms_policy_wildcard_failclosed :
+    (evalKMSPolicyWildcard { kind := some "key" }).fires = true := by native_decide
+theorem kms_policy_wildcard_unsafe :
+    (evalKMSPolicyWildcard { kind := some "key",
+                             policy := { has_wildcard_principal := some true } }).fires = true := by native_decide
+theorem kms_policy_wildcard_safe :
+    (evalKMSPolicyWildcard { kind := some "key",
+                             policy := { has_wildcard_principal := some false } }).fires = false := by native_decide
+
+-- CTL.KMS.POLICY.ADMIN.BROAD.001
+theorem kms_policy_admin_broad_failclosed :
+    (evalKMSPolicyAdminBroad { kind := some "key" }).fires = true := by native_decide
+theorem kms_policy_admin_broad_unsafe :
+    (evalKMSPolicyAdminBroad { kind := some "key",
+                               policy := { admin_actions_broadly_granted := some true } }).fires = true := by
+  native_decide
+theorem kms_policy_admin_broad_safe :
+    (evalKMSPolicyAdminBroad { kind := some "key",
+                               policy := { admin_actions_broadly_granted := some false } }).fires = false := by
+  native_decide
+
+-- CTL.KMS.POLICY.CONDITION.001
+theorem kms_policy_condition_failclosed :
+    (evalKMSPolicyCondition { kind := some "key" }).fires = true := by native_decide
+theorem kms_policy_condition_unsafe :
+    (evalKMSPolicyCondition { kind := some "key",
+                              policy := { has_usage_conditions := some false } }).fires = true := by native_decide
+theorem kms_policy_condition_safe :
+    (evalKMSPolicyCondition { kind := some "key",
+                              policy := { has_usage_conditions := some true } }).fires = false := by native_decide
+
+-- CTL.KMS.POLICY.CROSSACCOUNT.001
+theorem kms_policy_crossaccount_failclosed :
+    (evalKMSPolicyCrossAccount { kind := some "key" }).fires = true := by native_decide
+theorem kms_policy_crossaccount_unsafe :
+    (evalKMSPolicyCrossAccount { kind := some "key",
+                                 policy := { has_broad_cross_account := some true } }).fires = true := by
+  native_decide
+theorem kms_policy_crossaccount_safe :
+    (evalKMSPolicyCrossAccount { kind := some "key",
+                                 policy := { has_broad_cross_account := some false } }).fires = false := by
+  native_decide
+
+-- CTL.KMS.POLICY.DECRYPT.BROAD.001
+theorem kms_policy_decrypt_broad_failclosed :
+    (evalKMSPolicyDecryptBroad { kind := some "key",
+                                 is_aws_managed := some false }).fires = true := by native_decide
+theorem kms_policy_decrypt_broad_unsafe :
+    (evalKMSPolicyDecryptBroad { kind := some "key",
+                                 is_aws_managed := some false,
+                                 policy := { decrypt_broadly_granted := some true } }).fires = true := by
+  native_decide
+theorem kms_policy_decrypt_broad_safe :
+    (evalKMSPolicyDecryptBroad { kind := some "key",
+                                 is_aws_managed := some false,
+                                 policy := { decrypt_broadly_granted := some false } }).fires = false := by
+  native_decide
+theorem kms_policy_decrypt_broad_aws_managed :
+    (evalKMSPolicyDecryptBroad { kind := some "key",
+                                 is_aws_managed := some true }).fires = false := by native_decide
+
+-- CTL.KMS.POLICY.ENCLAVE.NOPCR.001
+theorem kms_policy_enclave_nopcr_failclosed :
+    (evalKMSPolicyEnclaveNoPcr { kind := some "key",
+                                 tags := { enclave_protected := some true } }).fires = true := by native_decide
+theorem kms_policy_enclave_nopcr_unsafe :
+    (evalKMSPolicyEnclaveNoPcr { kind := some "key",
+                                 tags := { enclave_protected := some true },
+                                 enclave_attestation := { has_pcr_condition := some false } }).fires = true := by
+  native_decide
+theorem kms_policy_enclave_nopcr_safe :
+    (evalKMSPolicyEnclaveNoPcr { kind := some "key",
+                                 tags := { enclave_protected := some true },
+                                 enclave_attestation := { has_pcr_condition := some true } }).fires = false := by
+  native_decide
+theorem kms_policy_enclave_nopcr_not_enclave :
+    (evalKMSPolicyEnclaveNoPcr { kind := some "key",
+                                 tags := { enclave_protected := some false } }).fires = false := by native_decide
+
+-- CTL.KMS.POLICY.GHOSTREF.001
+theorem kms_policy_ghostref_failclosed :
+    (evalKMSPolicyGhostRef { kind := some "key" }).fires = true := by native_decide
+theorem kms_policy_ghostref_unsafe :
+    (evalKMSPolicyGhostRef { kind := some "key",
+                             policy := { has_ghost_principal := some true } }).fires = true := by native_decide
+theorem kms_policy_ghostref_safe :
+    (evalKMSPolicyGhostRef { kind := some "key",
+                             policy := { has_ghost_principal := some false } }).fires = false := by native_decide
+
+-- CTL.KMS.POLICY.GRANTWITHGRANT.001
+theorem kms_policy_grantwithgrant_failclosed :
+    (evalKMSPolicyGrantWithGrant { kind := some "key" }).fires = true := by native_decide
+theorem kms_policy_grantwithgrant_unsafe :
+    (evalKMSPolicyGrantWithGrant { kind := some "key",
+                                   policy := { allows_grant_with_grant := some true } }).fires = true := by
+  native_decide
+theorem kms_policy_grantwithgrant_safe :
+    (evalKMSPolicyGrantWithGrant { kind := some "key",
+                                   policy := { allows_grant_with_grant := some false } }).fires = false := by
+  native_decide
+
+-- CTL.KMS.POLICY.NOCONTEXT.001
+theorem kms_policy_nocontext_failclosed :
+    (evalKMSPolicyNoContext { kind := some "key" }).fires = true := by native_decide
+theorem kms_policy_nocontext_unsafe :
+    (evalKMSPolicyNoContext { kind := some "key",
+                              policy := { requires_encryption_context := some false } }).fires = true := by
+  native_decide
+theorem kms_policy_nocontext_safe :
+    (evalKMSPolicyNoContext { kind := some "key",
+                              policy := { requires_encryption_context := some true } }).fires = false := by
+  native_decide
+
+-- CTL.KMS.POLICY.NOVIASERVICE.001
+theorem kms_policy_noviaservice_failclosed :
+    (evalKMSPolicyNoViaService { kind := some "key",
+                                 key_usage := some "ENCRYPT_DECRYPT" }).fires = true := by native_decide
+theorem kms_policy_noviaservice_unsafe :
+    (evalKMSPolicyNoViaService { kind := some "key",
+                                 key_usage := some "ENCRYPT_DECRYPT",
+                                 policy := { has_via_service := some false } }).fires = true := by native_decide
+theorem kms_policy_noviaservice_safe :
+    (evalKMSPolicyNoViaService { kind := some "key",
+                                 key_usage := some "ENCRYPT_DECRYPT",
+                                 policy := { has_via_service := some true } }).fires = false := by native_decide
+theorem kms_policy_noviaservice_other_usage :
+    (evalKMSPolicyNoViaService { kind := some "key",
+                                 key_usage := some "SIGN_VERIFY" }).fires = false := by native_decide
+
+-- CTL.KMS.POLICY.ROOT.PRINCIPAL.001
+theorem kms_policy_root_principal_failclosed :
+    (evalKMSPolicyRootPrincipal { kind := some "key" }).fires = true := by native_decide
+theorem kms_policy_root_principal_unsafe :
+    (evalKMSPolicyRootPrincipal { kind := some "key",
+                                  policy := { has_root_principal_full_access := some true } }).fires = true := by
+  native_decide
+theorem kms_policy_root_principal_safe :
+    (evalKMSPolicyRootPrincipal { kind := some "key",
+                                  policy := { has_root_principal_full_access := some false } }).fires = false := by
+  native_decide
+
 -- Dispatcher: unknown control → unevaluable → fires
 theorem kms_unknown_control_failclosed :
     (evalKMSControl "CTL.KMS.UNKNOWN.999" {}).outcome.fires = true := by native_decide

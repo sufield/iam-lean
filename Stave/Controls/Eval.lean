@@ -200,5 +200,16 @@ def evalTypedControl (ctrlId : ControlId) (obs : TypedObs) : ControlResult :=
     | "CTL.KMS.FIPS.001", .kmsKey o => evalKMSFips o
     | "CTL.KMS.INCOMPLETE.001", .kmsKey o => evalKMSIncomplete o
     | "CTL.KMS.SEPARATION.001", .kmsKey o => evalKMSSeparation o
+    | "CTL.KMS.POLICY.001", .kmsKey o => evalKMSPolicyWildcard o
+    | "CTL.KMS.POLICY.ADMIN.BROAD.001", .kmsKey o => evalKMSPolicyAdminBroad o
+    | "CTL.KMS.POLICY.CONDITION.001", .kmsKey o => evalKMSPolicyCondition o
+    | "CTL.KMS.POLICY.CROSSACCOUNT.001", .kmsKey o => evalKMSPolicyCrossAccount o
+    | "CTL.KMS.POLICY.DECRYPT.BROAD.001", .kmsKey o => evalKMSPolicyDecryptBroad o
+    | "CTL.KMS.POLICY.ENCLAVE.NOPCR.001", .kmsKey o => evalKMSPolicyEnclaveNoPcr o
+    | "CTL.KMS.POLICY.GHOSTREF.001", .kmsKey o => evalKMSPolicyGhostRef o
+    | "CTL.KMS.POLICY.GRANTWITHGRANT.001", .kmsKey o => evalKMSPolicyGrantWithGrant o
+    | "CTL.KMS.POLICY.NOCONTEXT.001", .kmsKey o => evalKMSPolicyNoContext o
+    | "CTL.KMS.POLICY.NOVIASERVICE.001", .kmsKey o => evalKMSPolicyNoViaService o
+    | "CTL.KMS.POLICY.ROOT.PRINCIPAL.001", .kmsKey o => evalKMSPolicyRootPrincipal o
     | _, _ => EvalOutcome.unevaluable
   { controlId := ctrlId, outcome := outcome }
