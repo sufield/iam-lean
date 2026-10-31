@@ -1,5 +1,6 @@
 import Lean.Data.Json
 import Stave.Controls.Eval
+import Stave.KMS.Json
 
 /-! FromJson instances for the 5 CH1 observation types.
 Parses obs.v0.1 asset JSON — navigates nested properties to
@@ -177,6 +178,12 @@ instance : FromJson TypedObs where
         let obs ← @FromJson.fromJson? IAMSummaryObs _ j
         pure (.iamSummary obs)
       | _ => .error s!"unknown identity kind: {kind}"
+    else if (getObj props "cryptography") != .null then
+      let obs ← @FromJson.fromJson? KMSKeyObs _ j
+      pure (.kmsKey obs)
+    else if (getObj (getObj (getObj props "encryption") "kms") "grant") != .null then
+      let obs ← @FromJson.fromJson? KMSGrantObs _ j
+      pure (.kmsGrant obs)
     else
       .error "no recognized property bag in asset JSON"
 

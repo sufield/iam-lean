@@ -1,4 +1,5 @@
 import Stave.Controls.Types
+import Stave.KMS.Eval
 
 /-! Concrete Lean evaluators for 8 HN practitioner controls.
 Each function mirrors the CEL unsafe_predicate from its control YAML.
@@ -165,6 +166,8 @@ inductive TypedObs where
   | cdn (obs : CDNObs)
   | vpcEndpoint (obs : VPCEndpointObs)
   | storage (obs : StorageObs)
+  | kmsKey (obs : KMSKeyObs)
+  | kmsGrant (obs : KMSGrantObs)
   deriving Repr
 
 def evalTypedControl (ctrlId : ControlId) (obs : TypedObs) : ControlResult :=
@@ -185,5 +188,17 @@ def evalTypedControl (ctrlId : ControlId) (obs : TypedObs) : ControlResult :=
     | "CTL.IAM.CRED.UNUSED45.001", .iamUser o => evalCredUnused45 o
     | "CTL.IAM.ADMIN.COUNT.001", .iamSummary o => evalAdminCount o
     | "CTL.S3.GOVERNANCE.001", .storage o => evalS3Governance o
+    | "CTL.KMS.ROTATION.001", .kmsKey o => evalKMSRotation o
+    | "CTL.KMS.STATE.DISABLED.001", .kmsKey o => evalKMSStateDisabled o
+    | "CTL.KMS.DELETION.NOPROTECTION.001", .kmsKey o => evalKMSDeletionNoProtection o
+    | "CTL.KMS.PENDING.DELETION.001", .kmsKey o => evalKMSPendingDeletion o
+    | "CTL.KMS.LIFECYCLE.DORMANT.001", .kmsKey o => evalKMSDormant o
+    | "CTL.KMS.LIFECYCLE.NOALIAS.001", .kmsKey o => evalKMSNoAlias o
+    | "CTL.KMS.LIFECYCLE.CROSSENV.001", .kmsKey o => evalKMSCrossEnv o
+    | "CTL.KMS.LIFECYCLE.ROTATION.PERIOD.001", .kmsKey o => evalKMSRotationPeriod o
+    | "CTL.KMS.ENTROPY.EXTERNAL.ORIGIN.001", .kmsKey o => evalKMSEntropyExternal o
+    | "CTL.KMS.FIPS.001", .kmsKey o => evalKMSFips o
+    | "CTL.KMS.INCOMPLETE.001", .kmsKey o => evalKMSIncomplete o
+    | "CTL.KMS.SEPARATION.001", .kmsKey o => evalKMSSeparation o
     | _, _ => EvalOutcome.unevaluable
   { controlId := ctrlId, outcome := outcome }

@@ -14,3 +14,4 @@ import Stave.IAM
 import Stave.CrossAccount
 import Stave.Schema
 import Stave.Controls
+import Stave.KMS
