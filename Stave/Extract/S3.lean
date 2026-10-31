@@ -1,0 +1,147 @@
+import Stave.Extract.Asset
+
+/-! S3 transforms — 4 jq filter equivalents:
+  s3-buckets, s3-encryption, s3-public-access-block, s3-tags.
+  Enrichment assets (encryption/PAB/tags) merge onto the base bucket by id. -/
+
+open Lean (Json)
+
+-- s3-buckets.jq: .Buckets[] → one aws_s3_bucket per bucket
+def transformS3Buckets (raw : Json) : List ObsAsset :=
+  (getArr raw "Buckets").filterMap fun bucket =>
+    match getOptStr bucket "Name" with
+    | some name => some (awsAsset
+        ("arn:aws:s3:::" ++ name)
+        "aws_s3_bucket"
+        (Json.mkObj [("storage", Json.mkObj [
+          ("kind", .str "bucket"),
+          ("name", .str name)
+        ])]))
+    | none => none
+
+-- s3-encryption.jq: per-bucket encryption → merge asset
+def transformS3Encryption (raw : Json) : Option ObsAsset :=
+  match getOptStr raw "Bucket" with
+  | none => none
+  | some bucket =>
+    let rules := getArr (getObj raw "ServerSideEncryptionConfiguration") "Rules"
+    let enc := match rules.head? with
+      | some r => getObj r "ApplyServerSideEncryptionByDefault"
+      | none => .null
+    let algo := match getOptStr enc "SSEAlgorithm" with | some a => a | none => "none"
+    let kmsKey := match getOptStr enc "KMSMasterKeyID" with | some k => Json.str k | none => .null
+    some (awsAsset
+      ("arn:aws:s3:::" ++ bucket)
+      "aws_s3_bucket"
+      (Json.mkObj [("storage", Json.mkObj [
+        ("encryption", Json.mkObj [
+          ("algorithm", .str algo),
+          ("kms_key_id", kmsKey)
+        ])
+      ])]))
+
+-- s3-public-access-block.jq: per-bucket PAB → merge asset
+def transformS3PublicAccessBlock (raw : Json) : Option ObsAsset :=
+  match getOptStr raw "Bucket" with
+  | none => none
+  | some bucket =>
+    let pab := getObj raw "PublicAccessBlockConfiguration"
+    let bpa := (getOptBool pab "BlockPublicAcls").getD false
+    let bpp := (getOptBool pab "BlockPublicPolicy").getD false
+    let ipa := (getOptBool pab "IgnorePublicAcls").getD false
+    let rpb := (getOptBool pab "RestrictPublicBuckets").getD false
+    some (awsAsset
+      ("arn:aws:s3:::" ++ bucket)
+      "aws_s3_bucket"
+      (Json.mkObj [("storage", Json.mkObj [
+        ("controls", Json.mkObj [
+          ("public_access_block", Json.mkObj [
+            ("block_public_acls", .bool bpa),
+            ("block_public_policy", .bool bpp),
+            ("ignore_public_acls", .bool ipa),
+            ("restrict_public_buckets", .bool rpb)
+          ]),
+          ("public_access_fully_blocked", .bool (bpa && bpp && ipa && rpb))
+        ])
+      ])]))
+
+-- s3-tags.jq: per-bucket tags → merge asset
+def transformS3Tags (raw : Json) : Option ObsAsset :=
+  match getOptStr raw "Bucket" with
+  | none => none
+  | some bucket =>
+    let tagSet := getArr raw "TagSet"
+    let tagPairs := tagSet.filterMap fun t =>
+      match getOptStr t "Key", getOptStr t "Value" with
+      | some k, some v => some (k, Json.str v)
+      | _, _ => none
+    some (awsAsset
+      ("arn:aws:s3:::" ++ bucket)
+      "aws_s3_bucket"
+      (Json.mkObj [("storage", Json.mkObj [
+        ("tags", Json.mkObj tagPairs)
+      ])]))
+
+-- Core lemma: awsAsset always produces correct vendor and type
+theorem awsAsset_vendor (id t : String) (p : Json) :
+    (awsAsset id t p).vendor = "aws" := rfl
+
+theorem awsAsset_assetType (id t : String) (p : Json) :
+    (awsAsset id t p).assetType = t := rfl
+
+-- Self-tests with concrete JSON
+
+#guard
+  let raw := Json.mkObj [("Buckets", Json.arr #[
+    Json.mkObj [("Name", .str "my-bucket")]
+  ])]
+  match transformS3Buckets raw with
+  | [a] => a.id == "arn:aws:s3:::my-bucket" &&
+            a.assetType == "aws_s3_bucket" &&
+            a.vendor == "aws"
+  | _ => false
+
+#guard
+  let raw := Json.mkObj [
+    ("Bucket", .str "test-bucket"),
+    ("PublicAccessBlockConfiguration", Json.mkObj [
+      ("BlockPublicAcls", .bool true),
+      ("BlockPublicPolicy", .bool true),
+      ("IgnorePublicAcls", .bool true),
+      ("RestrictPublicBuckets", .bool true)
+    ])
+  ]
+  match transformS3PublicAccessBlock raw with
+  | some a => a.id == "arn:aws:s3:::test-bucket" && a.vendor == "aws"
+  | none => false
+
+#guard
+  let raw := Json.mkObj [
+    ("Bucket", .str "test-bucket"),
+    ("PublicAccessBlockConfiguration", Json.mkObj [
+      ("BlockPublicAcls", .bool true),
+      ("BlockPublicPolicy", .bool false),
+      ("IgnorePublicAcls", .bool true),
+      ("RestrictPublicBuckets", .bool true)
+    ])
+  ]
+  match transformS3PublicAccessBlock raw with
+  | some a => a.vendor == "aws"
+  | none => false
+
+#guard
+  let raw := Json.mkObj [
+    ("Bucket", .str "tagged-bucket"),
+    ("TagSet", Json.arr #[
+      Json.mkObj [("Key", .str "env"), ("Value", .str "prod")],
+      Json.mkObj [("Key", .str "team"), ("Value", .str "security")]
+    ])
+  ]
+  match transformS3Tags raw with
+  | some a => a.id == "arn:aws:s3:::tagged-bucket"
+  | none => false
+
+-- Missing bucket name → none
+#guard (transformS3Encryption (Json.mkObj [])).isNone
+#guard (transformS3PublicAccessBlock (Json.mkObj [])).isNone
+#guard (transformS3Tags (Json.mkObj [])).isNone
