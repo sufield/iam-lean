@@ -332,6 +332,106 @@ theorem kms_policy_root_principal_safe :
                                   policy := { has_root_principal_full_access := some false } }).fires = false := by
   native_decide
 
+-- ===== KMS-P3: Monitoring controls =====
+
+-- CTL.KMS.ALARM.CREATEGRANT.001
+theorem kms_alarm_creategrant_failclosed :
+    (evalKMSAlarmCreateGrant { kind := some "key" }).fires = true := by native_decide
+theorem kms_alarm_creategrant_unsafe :
+    (evalKMSAlarmCreateGrant { kind := some "key",
+                               alarms := { has_create_grant_alarm := some false } }).fires = true := by native_decide
+theorem kms_alarm_creategrant_safe :
+    (evalKMSAlarmCreateGrant { kind := some "key",
+                               alarms := { has_create_grant_alarm := some true } }).fires = false := by native_decide
+
+-- CTL.KMS.ALARM.CROSSACCOUNT.001
+theorem kms_alarm_crossaccount_failclosed :
+    (evalKMSAlarmCrossAccount { kind := some "key",
+                                policy := { has_cross_account_principal := some true } }).fires = true := by
+  native_decide
+theorem kms_alarm_crossaccount_unsafe :
+    (evalKMSAlarmCrossAccount { kind := some "key",
+                                policy := { has_cross_account_principal := some true },
+                                alarms := { has_cross_account_alarm := some false } }).fires = true := by
+  native_decide
+theorem kms_alarm_crossaccount_safe :
+    (evalKMSAlarmCrossAccount { kind := some "key",
+                                policy := { has_cross_account_principal := some true },
+                                alarms := { has_cross_account_alarm := some true } }).fires = false := by
+  native_decide
+theorem kms_alarm_crossaccount_no_xacct :
+    (evalKMSAlarmCrossAccount { kind := some "key",
+                                policy := { has_cross_account_principal := some false } }).fires = false := by
+  native_decide
+
+-- CTL.KMS.ALARM.DECRYPT.FAILURE.001
+theorem kms_alarm_decrypt_failure_failclosed :
+    (evalKMSAlarmDecryptFailure { kind := some "key" }).fires = true := by native_decide
+theorem kms_alarm_decrypt_failure_unsafe :
+    (evalKMSAlarmDecryptFailure { kind := some "key",
+                                  alarms := { has_decrypt_failure_alarm := some false } }).fires = true := by
+  native_decide
+theorem kms_alarm_decrypt_failure_safe :
+    (evalKMSAlarmDecryptFailure { kind := some "key",
+                                  alarms := { has_decrypt_failure_alarm := some true } }).fires = false := by
+  native_decide
+
+-- CTL.KMS.ALARM.DECRYPT.VOLUME.001
+theorem kms_alarm_decrypt_volume_failclosed :
+    (evalKMSAlarmDecryptVolume { kind := some "key" }).fires = true := by native_decide
+theorem kms_alarm_decrypt_volume_unsafe :
+    (evalKMSAlarmDecryptVolume { kind := some "key",
+                                 alarms := { has_decrypt_volume_alarm := some false } }).fires = true := by
+  native_decide
+theorem kms_alarm_decrypt_volume_safe :
+    (evalKMSAlarmDecryptVolume { kind := some "key",
+                                 alarms := { has_decrypt_volume_alarm := some true } }).fires = false := by
+  native_decide
+
+-- CTL.KMS.ALARM.DELETION.001
+theorem kms_alarm_deletion_failclosed :
+    (evalKMSAlarmDeletion { kind := some "key" }).fires = true := by native_decide
+theorem kms_alarm_deletion_unsafe :
+    (evalKMSAlarmDeletion { kind := some "key",
+                            alarms := { has_schedule_deletion_alarm := some false } }).fires = true := by
+  native_decide
+theorem kms_alarm_deletion_safe :
+    (evalKMSAlarmDeletion { kind := some "key",
+                            alarms := { has_schedule_deletion_alarm := some true } }).fires = false := by
+  native_decide
+
+-- CTL.KMS.ALARM.DISABLE.001
+theorem kms_alarm_disable_failclosed :
+    (evalKMSAlarmDisable { kind := some "key" }).fires = true := by native_decide
+theorem kms_alarm_disable_unsafe :
+    (evalKMSAlarmDisable { kind := some "key",
+                           alarms := { has_disable_key_alarm := some false } }).fires = true := by native_decide
+theorem kms_alarm_disable_safe :
+    (evalKMSAlarmDisable { kind := some "key",
+                           alarms := { has_disable_key_alarm := some true } }).fires = false := by native_decide
+
+-- CTL.KMS.ALARM.POLICYCHANGE.001
+theorem kms_alarm_policychange_failclosed :
+    (evalKMSAlarmPolicyChange { kind := some "key" }).fires = true := by native_decide
+theorem kms_alarm_policychange_unsafe :
+    (evalKMSAlarmPolicyChange { kind := some "key",
+                                alarms := { has_put_key_policy_alarm := some false } }).fires = true := by
+  native_decide
+theorem kms_alarm_policychange_safe :
+    (evalKMSAlarmPolicyChange { kind := some "key",
+                                alarms := { has_put_key_policy_alarm := some true } }).fires = false := by
+  native_decide
+
+-- CTL.KMS.ALARM.ROTATION.FAILURE.001
+theorem kms_alarm_rotation_failure_failclosed :
+    (evalKMSAlarmRotationFailure { kind := some "key" }).fires = true := by native_decide
+theorem kms_alarm_rotation_failure_unsafe :
+    (evalKMSAlarmRotationFailure { kind := some "key",
+                                   alarms := { has_rotation_alarm := some false } }).fires = true := by native_decide
+theorem kms_alarm_rotation_failure_safe :
+    (evalKMSAlarmRotationFailure { kind := some "key",
+                                   alarms := { has_rotation_alarm := some true } }).fires = false := by native_decide
+
 -- Dispatcher: unknown control → unevaluable → fires
 theorem kms_unknown_control_failclosed :
     (evalKMSControl "CTL.KMS.UNKNOWN.999" {}).outcome.fires = true := by native_decide

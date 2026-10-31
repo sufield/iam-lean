@@ -211,5 +211,13 @@ def evalTypedControl (ctrlId : ControlId) (obs : TypedObs) : ControlResult :=
     | "CTL.KMS.POLICY.NOCONTEXT.001", .kmsKey o => evalKMSPolicyNoContext o
     | "CTL.KMS.POLICY.NOVIASERVICE.001", .kmsKey o => evalKMSPolicyNoViaService o
     | "CTL.KMS.POLICY.ROOT.PRINCIPAL.001", .kmsKey o => evalKMSPolicyRootPrincipal o
+    | "CTL.KMS.ALARM.CREATEGRANT.001", .kmsKey o => evalKMSAlarmCreateGrant o
+    | "CTL.KMS.ALARM.CROSSACCOUNT.001", .kmsKey o => evalKMSAlarmCrossAccount o
+    | "CTL.KMS.ALARM.DECRYPT.FAILURE.001", .kmsKey o => evalKMSAlarmDecryptFailure o
+    | "CTL.KMS.ALARM.DECRYPT.VOLUME.001", .kmsKey o => evalKMSAlarmDecryptVolume o
+    | "CTL.KMS.ALARM.DELETION.001", .kmsKey o => evalKMSAlarmDeletion o
+    | "CTL.KMS.ALARM.DISABLE.001", .kmsKey o => evalKMSAlarmDisable o
+    | "CTL.KMS.ALARM.POLICYCHANGE.001", .kmsKey o => evalKMSAlarmPolicyChange o
+    | "CTL.KMS.ALARM.ROTATION.FAILURE.001", .kmsKey o => evalKMSAlarmRotationFailure o
     | _, _ => EvalOutcome.unevaluable
   { controlId := ctrlId, outcome := outcome }

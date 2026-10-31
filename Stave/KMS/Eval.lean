@@ -307,6 +307,62 @@ def evalKMSPolicyRootPrincipal (obs : KMSKeyObs) : EvalOutcome :=
   | some _ => .clear
   | none   => .unevaluable
 
+-- ===== KMS-P3: Monitoring controls (8) =====
+
+private def evalAlarmPresent (obs : KMSKeyObs) (alarmField : KMSAlarms → Option Bool) : EvalOutcome :=
+  match obs.kind with
+  | some "key" =>
+    match alarmField obs.alarms with
+    | some false => .«unsafe»
+    | some true  => .clear
+    | none       => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.ALARM.CREATEGRANT.001
+def evalKMSAlarmCreateGrant (obs : KMSKeyObs) : EvalOutcome :=
+  evalAlarmPresent obs (·.has_create_grant_alarm)
+
+-- CTL.KMS.ALARM.CROSSACCOUNT.001
+-- Compound: policy.has_cross_account_principal=true AND alarms.has_cross_account_alarm=false
+def evalKMSAlarmCrossAccount (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "key" =>
+    match obs.policy.has_cross_account_principal with
+    | some true =>
+      match obs.alarms.has_cross_account_alarm with
+      | some false => .«unsafe»
+      | some true  => .clear
+      | none       => .unevaluable
+    | some false => .clear
+    | none       => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.ALARM.DECRYPT.FAILURE.001
+def evalKMSAlarmDecryptFailure (obs : KMSKeyObs) : EvalOutcome :=
+  evalAlarmPresent obs (·.has_decrypt_failure_alarm)
+
+-- CTL.KMS.ALARM.DECRYPT.VOLUME.001
+def evalKMSAlarmDecryptVolume (obs : KMSKeyObs) : EvalOutcome :=
+  evalAlarmPresent obs (·.has_decrypt_volume_alarm)
+
+-- CTL.KMS.ALARM.DELETION.001
+def evalKMSAlarmDeletion (obs : KMSKeyObs) : EvalOutcome :=
+  evalAlarmPresent obs (·.has_schedule_deletion_alarm)
+
+-- CTL.KMS.ALARM.DISABLE.001
+def evalKMSAlarmDisable (obs : KMSKeyObs) : EvalOutcome :=
+  evalAlarmPresent obs (·.has_disable_key_alarm)
+
+-- CTL.KMS.ALARM.POLICYCHANGE.001
+def evalKMSAlarmPolicyChange (obs : KMSKeyObs) : EvalOutcome :=
+  evalAlarmPresent obs (·.has_put_key_policy_alarm)
+
+-- CTL.KMS.ALARM.ROTATION.FAILURE.001
+def evalKMSAlarmRotationFailure (obs : KMSKeyObs) : EvalOutcome :=
+  evalAlarmPresent obs (·.has_rotation_alarm)
+
 /-- Dispatch KMS control ID to evaluator. Unknown → unevaluable (fail-closed). -/
 def evalKMSControl (ctrlId : ControlId) (obs : KMSKeyObs) : ControlResult :=
   let outcome := match ctrlId with
@@ -333,5 +389,13 @@ def evalKMSControl (ctrlId : ControlId) (obs : KMSKeyObs) : ControlResult :=
     | "CTL.KMS.POLICY.NOCONTEXT.001"          => evalKMSPolicyNoContext obs
     | "CTL.KMS.POLICY.NOVIASERVICE.001"       => evalKMSPolicyNoViaService obs
     | "CTL.KMS.POLICY.ROOT.PRINCIPAL.001"     => evalKMSPolicyRootPrincipal obs
+    | "CTL.KMS.ALARM.CREATEGRANT.001"         => evalKMSAlarmCreateGrant obs
+    | "CTL.KMS.ALARM.CROSSACCOUNT.001"        => evalKMSAlarmCrossAccount obs
+    | "CTL.KMS.ALARM.DECRYPT.FAILURE.001"     => evalKMSAlarmDecryptFailure obs
+    | "CTL.KMS.ALARM.DECRYPT.VOLUME.001"      => evalKMSAlarmDecryptVolume obs
+    | "CTL.KMS.ALARM.DELETION.001"            => evalKMSAlarmDeletion obs
+    | "CTL.KMS.ALARM.DISABLE.001"             => evalKMSAlarmDisable obs
+    | "CTL.KMS.ALARM.POLICYCHANGE.001"        => evalKMSAlarmPolicyChange obs
+    | "CTL.KMS.ALARM.ROTATION.FAILURE.001"    => evalKMSAlarmRotationFailure obs
     | _ => EvalOutcome.unevaluable
   (ControlResult.mk ctrlId outcome : ControlResult)
