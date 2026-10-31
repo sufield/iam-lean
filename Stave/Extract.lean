@@ -6,3 +6,7 @@ import Stave.Extract.EC2
 import Stave.Extract.IAM
 import Stave.Extract.Misc
 import Stave.Extract.SupplyChain
+import Stave.Extract.CrossEnv
+import Stave.Extract.Escalation
+import Stave.Extract.Exfiltration
+import Stave.Extract.Reachability
