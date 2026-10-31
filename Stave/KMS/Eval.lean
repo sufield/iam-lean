@@ -363,6 +363,278 @@ def evalKMSAlarmPolicyChange (obs : KMSKeyObs) : EvalOutcome :=
 def evalKMSAlarmRotationFailure (obs : KMSKeyObs) : EvalOutcome :=
   evalAlarmPresent obs (·.has_rotation_alarm)
 
+-- ===== KMS-P4: Grant, Alias, and Remaining (20) =====
+
+-- CTL.KMS.ALIAS.GHOST.001
+-- all: [kind=alias, alias_is_ghost=true]
+def evalKMSAliasGhost (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "alias" =>
+    match obs.alias_is_ghost with
+    | some true  => .«unsafe»
+    | some false => .clear
+    | none       => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.ALIAS.ORPHAN.001
+-- all: [kind=alias, alias_is_orphan=true]
+def evalKMSAliasOrphan (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "alias" =>
+    match obs.alias_is_orphan with
+    | some true  => .«unsafe»
+    | some false => .clear
+    | none       => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.CONCENTRATION.001
+-- all: [kind=key, key_concentration.resource_count > 50]
+def evalKMSConcentration001 (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "key" =>
+    match obs.key_concentration.resource_count with
+    | some n => if n > 50 then .«unsafe» else .clear
+    | none   => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.CONCENTRATION.002
+-- all: [kind=key, key_concentration.resource_count > 50, key_concentration.has_deletion_protection=false]
+def evalKMSConcentration002 (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "key" =>
+    match obs.key_concentration.resource_count with
+    | some n =>
+      if n > 50 then
+        match obs.key_concentration.has_deletion_protection with
+        | some false => .«unsafe»
+        | some true  => .clear
+        | none       => .unevaluable
+      else .clear
+    | none => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.CROSSACCOUNT.BLASTRADIUS.001
+-- all: [kind=key, cross_account.excessive=true]
+def evalKMSCrossAccountBlastRadius (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "key" =>
+    match obs.cross_account.excessive with
+    | some true  => .«unsafe»
+    | some false => .clear
+    | none       => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.CROSSACCOUNT.DECOMMISSIONED.001
+-- all: [kind=key, cross_account.has_decommissioned_account=true]
+def evalKMSCrossAccountDecommissioned (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "key" =>
+    match obs.cross_account.has_decommissioned_account with
+    | some true  => .«unsafe»
+    | some false => .clear
+    | none       => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.DELETION.MINWAIT.001
+-- all: [kind=key, lifecycle.pending_deletion=true, lifecycle.deletion_wait_minimum=true]
+def evalKMSDeletionMinWait (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "key" =>
+    match obs.lifecycle.pending_deletion with
+    | some true =>
+      match obs.lifecycle.deletion_wait_minimum with
+      | some true  => .«unsafe»
+      | some false => .clear
+      | none       => .unevaluable
+    | some false => .clear
+    | none       => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.GRANT.BROAD.001
+-- all: [kind=key, grant_operations_excessive=true]
+def evalKMSGrantBroad (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "key" =>
+    match obs.grant_operations_excessive with
+    | some true  => .«unsafe»
+    | some false => .clear
+    | none       => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.GRANT.EXCESSIVE.001
+-- all: [kind=key, has_excessive_grants=true]
+def evalKMSGrantExcessive (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "key" =>
+    match obs.has_excessive_grants with
+    | some true  => .«unsafe»
+    | some false => .clear
+    | none       => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.GRANT.EXTERNAL.001 (reads from properties.encryption.kms.grant.*)
+-- all: [grantee_is_service_principal ne true, grantee_is_external_account=true]
+def evalKMSGrantExternal (obs : KMSGrantObs) : EvalOutcome :=
+  match obs.grantee_is_service_principal with
+  | some true => .clear
+  | some false =>
+    match obs.grantee_is_external_account with
+    | some true  => .«unsafe»
+    | some false => .clear
+    | none       => .unevaluable
+  | none =>
+    match obs.grantee_is_external_account with
+    | some true  => .«unsafe»
+    | some false => .clear
+    | none       => .unevaluable
+
+-- CTL.KMS.GRANT.ORPHAN.001
+-- all: [kind=grant, grant_is_orphan=true]
+def evalKMSGrantOrphan (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "grant" =>
+    match obs.grant_is_orphan with
+    | some true  => .«unsafe»
+    | some false => .clear
+    | none       => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.GRANT.STALE.001
+-- all: [kind=kms_key, rotation.enabled=true, grants.has_pre_rotation_grants=true]
+def evalKMSGrantStale (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "kms_key" =>
+    match obs.rotation_enabled with
+    | some true =>
+      match obs.grants.has_pre_rotation_grants with
+      | some true  => .«unsafe»
+      | some false => .clear
+      | none       => .unevaluable
+    | some false => .clear
+    | none       => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.IMPORTED.EXPIRY.001
+-- all: [kind=key, imported_material_no_expiry=true]
+def evalKMSImportedExpiry (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "key" =>
+    match obs.imported_material_no_expiry with
+    | some true  => .«unsafe»
+    | some false => .clear
+    | none       => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.MATERIAL.EXPIRED.001
+-- all: [kind=key, imported_material_expired=true]
+def evalKMSMaterialExpired (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "key" =>
+    match obs.imported_material_expired with
+    | some true  => .«unsafe»
+    | some false => .clear
+    | none       => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.ISOLATION.001
+-- all: [kms_key_id present, key_isolation.is_exclusive_to_domain=false]
+def evalKMSIsolation (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kms_key_id with
+  | some _ =>
+    match obs.key_isolation_is_exclusive with
+    | some false => .«unsafe»
+    | some true  => .clear
+    | none       => .unevaluable
+  | none => .clear
+
+-- CTL.KMS.MULTIREGION.NONCOMPLIANT.REGION.001
+-- all: [kind=key, multi_region.is_multi_region=true, multi_region.has_noncompliant_replica=true]
+def evalKMSMultiRegionNoncompliant (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "key" =>
+    match obs.multi_region.is_multi_region with
+    | some true =>
+      match obs.multi_region.has_noncompliant_replica with
+      | some true  => .«unsafe»
+      | some false => .clear
+      | none       => .unevaluable
+    | some false => .clear
+    | none       => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.MULTIREGION.NOREPLICA.001
+-- all: [kind=key, multi_region.is_multi_region=true, multi_region.replica_count=0]
+def evalKMSMultiRegionNoReplica (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "key" =>
+    match obs.multi_region.is_multi_region with
+    | some true =>
+      match obs.multi_region.replica_count with
+      | some 0 => .«unsafe»
+      | some _ => .clear
+      | none   => .unevaluable
+    | some false => .clear
+    | none       => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.MULTIREGION.POLICY.MISMATCH.001
+-- all: [kind=key, multi_region.is_multi_region=true, multi_region.replica_policies_consistent=false]
+def evalKMSMultiRegionPolicyMismatch (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "key" =>
+    match obs.multi_region.is_multi_region with
+    | some true =>
+      match obs.multi_region.replica_policies_consistent with
+      | some false => .«unsafe»
+      | some true  => .clear
+      | none       => .unevaluable
+    | some false => .clear
+    | none       => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.STATE.PENDINGDELETION.001
+-- all: [kind=key, lifecycle.pending_deletion=true, dependent_resource_count > 0]
+def evalKMSStatePendingDeletion (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "key" =>
+    match obs.lifecycle.pending_deletion with
+    | some true =>
+      match obs.dependent_resource_count with
+      | some n => if n > 0 then .«unsafe» else .clear
+      | none   => .unevaluable
+    | some false => .clear
+    | none       => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
+-- CTL.KMS.STATE.PENDINGIMPORT.001
+-- all: [kind=key, is_pending_import=true]
+def evalKMSStatePendingImport (obs : KMSKeyObs) : EvalOutcome :=
+  match obs.kind with
+  | some "key" =>
+    match obs.is_pending_import with
+    | some true  => .«unsafe»
+    | some false => .clear
+    | none       => .unevaluable
+  | some _ => .clear
+  | none   => .unevaluable
+
 /-- Dispatch KMS control ID to evaluator. Unknown → unevaluable (fail-closed). -/
 def evalKMSControl (ctrlId : ControlId) (obs : KMSKeyObs) : ControlResult :=
   let outcome := match ctrlId with
@@ -397,5 +669,31 @@ def evalKMSControl (ctrlId : ControlId) (obs : KMSKeyObs) : ControlResult :=
     | "CTL.KMS.ALARM.DISABLE.001"             => evalKMSAlarmDisable obs
     | "CTL.KMS.ALARM.POLICYCHANGE.001"        => evalKMSAlarmPolicyChange obs
     | "CTL.KMS.ALARM.ROTATION.FAILURE.001"    => evalKMSAlarmRotationFailure obs
+    | "CTL.KMS.ALIAS.GHOST.001"              => evalKMSAliasGhost obs
+    | "CTL.KMS.ALIAS.ORPHAN.001"             => evalKMSAliasOrphan obs
+    | "CTL.KMS.CONCENTRATION.001"            => evalKMSConcentration001 obs
+    | "CTL.KMS.CONCENTRATION.002"            => evalKMSConcentration002 obs
+    | "CTL.KMS.CROSSACCOUNT.BLASTRADIUS.001" => evalKMSCrossAccountBlastRadius obs
+    | "CTL.KMS.CROSSACCOUNT.DECOMMISSIONED.001" => evalKMSCrossAccountDecommissioned obs
+    | "CTL.KMS.DELETION.MINWAIT.001"         => evalKMSDeletionMinWait obs
+    | "CTL.KMS.GRANT.BROAD.001"              => evalKMSGrantBroad obs
+    | "CTL.KMS.GRANT.EXCESSIVE.001"          => evalKMSGrantExcessive obs
+    | "CTL.KMS.GRANT.ORPHAN.001"             => evalKMSGrantOrphan obs
+    | "CTL.KMS.GRANT.STALE.001"              => evalKMSGrantStale obs
+    | "CTL.KMS.IMPORTED.EXPIRY.001"          => evalKMSImportedExpiry obs
+    | "CTL.KMS.MATERIAL.EXPIRED.001"         => evalKMSMaterialExpired obs
+    | "CTL.KMS.ISOLATION.001"                => evalKMSIsolation obs
+    | "CTL.KMS.MULTIREGION.NONCOMPLIANT.REGION.001" => evalKMSMultiRegionNoncompliant obs
+    | "CTL.KMS.MULTIREGION.NOREPLICA.001"    => evalKMSMultiRegionNoReplica obs
+    | "CTL.KMS.MULTIREGION.POLICY.MISMATCH.001" => evalKMSMultiRegionPolicyMismatch obs
+    | "CTL.KMS.STATE.PENDINGDELETION.001"    => evalKMSStatePendingDeletion obs
+    | "CTL.KMS.STATE.PENDINGIMPORT.001"      => evalKMSStatePendingImport obs
+    | _ => EvalOutcome.unevaluable
+  (ControlResult.mk ctrlId outcome : ControlResult)
+
+/-- Dispatch KMS grant control ID. Only CTL.KMS.GRANT.EXTERNAL.001 uses KMSGrantObs. -/
+def evalKMSGrantControl (ctrlId : ControlId) (obs : KMSGrantObs) : ControlResult :=
+  let outcome := match ctrlId with
+    | "CTL.KMS.GRANT.EXTERNAL.001" => evalKMSGrantExternal obs
     | _ => EvalOutcome.unevaluable
   (ControlResult.mk ctrlId outcome : ControlResult)
