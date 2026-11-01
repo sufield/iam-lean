@@ -35,3 +35,7 @@ root = "Stave.Schema.BridgeMain"
 [[lean_exe]]
 name = "difftest"
 root = "Stave.Harness.DiffTest"
+
+[[lean_exe]]
+name = "extract-cli"
+root = "ExtractCli.Main"

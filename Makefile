@@ -1,4 +1,4 @@
-.PHONY: lean-build lean-verify lean-catalog bridge-build bridge-verify bridge-verify-all difftest drift-check clean
+.PHONY: lean-build lean-verify lean-catalog bridge-build bridge-verify bridge-verify-all extract-build difftest drift-check clean
 
 lean-build:
 	lake build
@@ -15,6 +15,9 @@ lean-catalog:
 
 bridge-build: lean-build
 	lake build bridge-cli
+
+extract-build: lean-build
+	lake build extract-cli
 
 bridge-verify: bridge-build
 	.lake/build/bin/bridge-cli verify all fixtures/
