@@ -80,25 +80,85 @@ def transformIAMPasswordPolicy (raw : Json) (account : String) : Option ObsAsset
       ])
     ])]))
 
--- iam-role-attached-policies.jq: annotated with RoleArn → merge asset
-def transformIAMRoleAttachedPolicies (raw : Json) : Option ObsAsset :=
-  match getOptStr raw "RoleArn" with
-  | none => none
-  | some arn =>
+-- iam-role-attached-policies.jq: RoleArn from JSON or filename fallback
+def transformIAMRoleAttachedPolicies (raw : Json) (roleArn : String := "") : Option ObsAsset :=
+  let arn := match getOptStr raw "RoleArn" with | some s => s | none => roleArn
+  if arn.isEmpty then none
+  else
     let policies := getArr raw "AttachedPolicies"
     let policyArns := policies.filterMap fun p => getOptStr p "PolicyArn"
     let isAdmin := policyArns.any (· == "arn:aws:iam::aws:policy/AdministratorAccess")
     some (awsAsset arn "aws_iam_role"
       (Json.mkObj [("identity", Json.mkObj [
         ("attached_policy_arns", Json.arr (policyArns.map Json.str).toArray),
-        ("is_admin_equivalent", .bool isAdmin)
+        ("is_admin_equivalent", .bool isAdmin),
+        ("policies", Json.mkObj [
+          ("has_admin_access", .bool isAdmin)
+        ])
+      ])]))
+
+-- iam-user-attached-policies: same as role but for users
+def transformIAMUserAttachedPolicies (raw : Json) (userArn : String := "") : Option ObsAsset :=
+  let arn := match getOptStr raw "UserArn" with | some s => s | none => userArn
+  if arn.isEmpty then none
+  else
+    let policies := getArr raw "AttachedPolicies"
+    let policyArns := policies.filterMap fun p => getOptStr p "PolicyArn"
+    let isAdmin := policyArns.any (· == "arn:aws:iam::aws:policy/AdministratorAccess")
+    some (awsAsset arn "aws_iam_user"
+      (Json.mkObj [("identity", Json.mkObj [
+        ("attached_policy_arns", Json.arr (policyArns.map Json.str).toArray),
+        ("is_admin_equivalent", .bool isAdmin),
+        ("policies", Json.mkObj [
+          ("has_admin_access", .bool isAdmin)
+        ])
+      ])]))
+
+-- iam-managed-policy-doc: get-policy-version output → extract policy actions
+private def extractPolicyActions (stmts : List Json) : List String :=
+  stmts.flatMap fun stmt =>
+    let actions := match getObj stmt "Action" with
+      | Json.arr a => a.toList.filterMap fun j => match j with | Json.str s => some s | _ => none
+      | Json.str s => [s]
+      | _ => []
+    actions
+
+private def isAdminPolicy (stmts : List Json) : Bool :=
+  stmts.any fun stmt =>
+    let effect := (getOptStr stmt "Effect").getD ""
+    let resource := getObj stmt "Resource"
+    let actions := match getObj stmt "Action" with
+      | Json.str s => [s]
+      | Json.arr a => a.toList.filterMap fun j => match j with | Json.str s => some s | _ => none
+      | _ => []
+    effect == "Allow" && (resource == Json.str "*") && actions.any (· == "*")
+
+def transformManagedPolicyDoc (raw : Json) (accountId : String) (policyName : String := "") : Option ObsAsset :=
+  let pv := getObj raw "PolicyVersion"
+  let doc := getObj pv "Document"
+  let stmtsRaw := getObj doc "Statement"
+  let stmts := match stmtsRaw with
+    | .arr a => a.toList
+    | j => if j == .null then [] else [j]
+  if stmts.isEmpty && policyName.isEmpty then none
+  else
+    let actions := extractPolicyActions stmts
+    some (awsAsset
+      ("arn:aws:iam::" ++ accountId ++ ":policy/" ++ policyName)
+      "aws_iam_policy"
+      (Json.mkObj [("identity", Json.mkObj [
+        ("kind", .str "policy"),
+        ("policy", Json.mkObj [
+          ("is_admin", .bool (isAdminPolicy stmts)),
+          ("actions", Json.arr (actions.map Json.str).toArray)
+        ])
       ])]))
 
 -- iam-role-tags.jq: annotated with RoleArn → merge asset
-def transformIAMRoleTags (raw : Json) : Option ObsAsset :=
-  match getOptStr raw "RoleArn" with
-  | none => none
-  | some arn =>
+def transformIAMRoleTags (raw : Json) (roleArn : String := "") : Option ObsAsset :=
+  let arn := match getOptStr raw "RoleArn" with | some s => s | none => roleArn
+  if arn.isEmpty then none
+  else
     let tags := getArr raw "Tags"
     let tagPairs := tags.filterMap fun t =>
       match getOptStr t "Key", getOptStr t "Value" with

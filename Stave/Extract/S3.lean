@@ -20,10 +20,11 @@ def transformS3Buckets (raw : Json) : List ObsAsset :=
     | none => none
 
 -- s3-encryption.jq: per-bucket encryption → merge asset
-def transformS3Encryption (raw : Json) : Option ObsAsset :=
-  match getOptStr raw "Bucket" with
-  | none => none
-  | some bucket =>
+-- bucket param: fallback when JSON lacks the Bucket field (real AWS CLI output)
+def transformS3Encryption (raw : Json) (bucket : String := "") : Option ObsAsset :=
+  let b := match getOptStr raw "Bucket" with | some s => s | none => bucket
+  if b.isEmpty then none
+  else
     let rules := getArr (getObj raw "ServerSideEncryptionConfiguration") "Rules"
     let enc := match rules.head? with
       | some r => getObj r "ApplyServerSideEncryptionByDefault"
@@ -31,7 +32,7 @@ def transformS3Encryption (raw : Json) : Option ObsAsset :=
     let algo := match getOptStr enc "SSEAlgorithm" with | some a => a | none => "none"
     let kmsKey := match getOptStr enc "KMSMasterKeyID" with | some k => Json.str k | none => .null
     some (awsAsset
-      ("arn:aws:s3:::" ++ bucket)
+      ("arn:aws:s3:::" ++ b)
       "aws_s3_bucket"
       (Json.mkObj [("storage", Json.mkObj [
         ("encryption", Json.mkObj [
@@ -41,17 +42,17 @@ def transformS3Encryption (raw : Json) : Option ObsAsset :=
       ])]))
 
 -- s3-public-access-block.jq: per-bucket PAB → merge asset
-def transformS3PublicAccessBlock (raw : Json) : Option ObsAsset :=
-  match getOptStr raw "Bucket" with
-  | none => none
-  | some bucket =>
+def transformS3PublicAccessBlock (raw : Json) (bucket : String := "") : Option ObsAsset :=
+  let b := match getOptStr raw "Bucket" with | some s => s | none => bucket
+  if b.isEmpty then none
+  else
     let pab := getObj raw "PublicAccessBlockConfiguration"
     let bpa := (getOptBool pab "BlockPublicAcls").getD false
     let bpp := (getOptBool pab "BlockPublicPolicy").getD false
     let ipa := (getOptBool pab "IgnorePublicAcls").getD false
     let rpb := (getOptBool pab "RestrictPublicBuckets").getD false
     some (awsAsset
-      ("arn:aws:s3:::" ++ bucket)
+      ("arn:aws:s3:::" ++ b)
       "aws_s3_bucket"
       (Json.mkObj [("storage", Json.mkObj [
         ("controls", Json.mkObj [
@@ -66,20 +67,52 @@ def transformS3PublicAccessBlock (raw : Json) : Option ObsAsset :=
       ])]))
 
 -- s3-tags.jq: per-bucket tags → merge asset
-def transformS3Tags (raw : Json) : Option ObsAsset :=
-  match getOptStr raw "Bucket" with
-  | none => none
-  | some bucket =>
+def transformS3Tags (raw : Json) (bucket : String := "") : Option ObsAsset :=
+  let b := match getOptStr raw "Bucket" with | some s => s | none => bucket
+  if b.isEmpty then none
+  else
     let tagSet := getArr raw "TagSet"
     let tagPairs := tagSet.filterMap fun t =>
       match getOptStr t "Key", getOptStr t "Value" with
       | some k, some v => some (k, Json.str v)
       | _, _ => none
     some (awsAsset
-      ("arn:aws:s3:::" ++ bucket)
+      ("arn:aws:s3:::" ++ b)
       "aws_s3_bucket"
       (Json.mkObj [("storage", Json.mkObj [
         ("tags", Json.mkObj tagPairs)
+      ])]))
+
+-- s3-versioning: per-bucket versioning status → merge asset
+def transformS3Versioning (raw : Json) (bucket : String := "") : Option ObsAsset :=
+  let b := match getOptStr raw "Bucket" with | some s => s | none => bucket
+  if b.isEmpty then none
+  else
+    let status := (getOptStr raw "Status").getD ""
+    let mfaDelete := (getOptStr raw "MFADelete").getD ""
+    some (awsAsset
+      ("arn:aws:s3:::" ++ b)
+      "aws_s3_bucket"
+      (Json.mkObj [("storage", Json.mkObj [
+        ("versioning", Json.mkObj [
+          ("enabled", .bool (status == "Enabled")),
+          ("mfa_delete", .bool (mfaDelete == "Enabled"))
+        ])
+      ])]))
+
+-- s3-logging: per-bucket logging config → merge asset
+def transformS3Logging (raw : Json) (bucket : String := "") : Option ObsAsset :=
+  let b := match getOptStr raw "Bucket" with | some s => s | none => bucket
+  if b.isEmpty then none
+  else
+    let loggingEnabled := getObj raw "LoggingEnabled"
+    some (awsAsset
+      ("arn:aws:s3:::" ++ b)
+      "aws_s3_bucket"
+      (Json.mkObj [("storage", Json.mkObj [
+        ("logging", Json.mkObj [
+          ("enabled", .bool (loggingEnabled != .null))
+        ])
       ])]))
 
 -- Core lemma: awsAsset always produces correct vendor and type

@@ -4,6 +4,7 @@ import Stave.Extract.EC2
 import Stave.Extract.KMS
 import Stave.Extract.CloudTrail
 import Stave.Extract.Misc
+import Stave.Extract.Escalation
 
 /-! extract-cli — convert a directory of raw AWS CLI JSON into obs.v0.1 snapshots.
 
@@ -63,35 +64,72 @@ def mergeOne (acc : List ObsAsset) (a : ObsAsset) : List ObsAsset :=
 def mergeAssets (assets : List ObsAsset) : List ObsAsset :=
   assets.foldl mergeOne []
 
+/-- Strip a prefix and the .json suffix from a filename to get the entity name. -/
+private def entityFromFilename (filename pfx : String) : String :=
+  let s := (filename.drop pfx.length).toString
+  if s.endsWith ".json" then
+    String.ofList (s.toList.take (s.length - 5))
+  else s
+
 /-- Route a filename to the appropriate extractor(s). Returns extracted assets. -/
 def extractFile (filename : String) (raw : Json) (accountId : String) : List ObsAsset :=
   -- S3
   if filename == "s3_buckets.json" then transformS3Buckets raw
-  else if filename.startsWith "s3-encryption-" then (transformS3Encryption raw).toList
-  else if filename.startsWith "s3-public-access-" then (transformS3PublicAccessBlock raw).toList
-  else if filename.startsWith "s3-tags-" then (transformS3Tags raw).toList
+  else if filename.startsWith "s3-encryption-" then
+    (transformS3Encryption raw (entityFromFilename filename "s3-encryption-")).toList
+  else if filename.startsWith "s3-public-access-" then
+    (transformS3PublicAccessBlock raw (entityFromFilename filename "s3-public-access-")).toList
+  else if filename.startsWith "s3-tags-" then
+    (transformS3Tags raw (entityFromFilename filename "s3-tags-")).toList
+  else if filename.startsWith "s3-versioning-" then
+    (transformS3Versioning raw (entityFromFilename filename "s3-versioning-")).toList
+  else if filename.startsWith "s3-logging-" then
+    (transformS3Logging raw (entityFromFilename filename "s3-logging-")).toList
   -- IAM
   else if filename == "iam_roles.json" then transformIAMRoles raw
   else if filename == "iam_users.json" then transformIAMUsers raw
   else if filename == "iam_groups.json" then transformIAMGroups raw
   else if filename == "iam_password_policy.json" then (transformIAMPasswordPolicy raw accountId).toList
-  else if filename.startsWith "role-detail-" then (transformIAMRoleAttachedPolicies raw).toList
+  else if filename.startsWith "role-detail-" then
+    let roleName := entityFromFilename filename "role-detail-"
+    (transformIAMRoleAttachedPolicies raw ("arn:aws:iam::" ++ accountId ++ ":role/" ++ roleName)).toList
+  else if filename.startsWith "role-attached-" then
+    let roleName := entityFromFilename filename "role-attached-"
+    (transformIAMRoleAttachedPolicies raw ("arn:aws:iam::" ++ accountId ++ ":role/" ++ roleName)).toList
+  else if filename.startsWith "user-attached-" then
+    let userName := entityFromFilename filename "user-attached-"
+    (transformIAMUserAttachedPolicies raw ("arn:aws:iam::" ++ accountId ++ ":user/" ++ userName)).toList
   else if filename.startsWith "group-inline-" then (transformIAMGroupInline raw accountId).toList
   else if filename.startsWith "user-inline-" then (transformIAMUserInline raw accountId).toList
   else if filename.startsWith "user-policy-" || filename.startsWith "group-policy-" || filename.startsWith "role-policy-" then
     (transformIAMInlinePolicy raw accountId).toList
+  else if filename.startsWith "policy-doc-" then
+    let policyName := entityFromFilename filename "policy-doc-"
+    (transformManagedPolicyDoc raw accountId policyName).toList
   -- EC2
   else if filename == "ec2_volumes.json" then transformEC2Volumes raw accountId
   else if filename == "ec2_instances.json" then transformEC2Instances raw accountId
   else if filename == "ec2_security_groups.json" then transformEC2SecurityGroups raw
+  else if filename.startsWith "sg-rules-" then
+    let sgId := entityFromFilename filename "sg-rules-"
+    let sgArn := "arn:aws:ec2:us-east-1:" ++ accountId ++ ":security-group/" ++ sgId
+    (transformEC2SGRules raw sgArn).toList
   -- KMS
   else if filename == "kms_keys.json" then transformKMSKeys raw
-  else if filename.startsWith "kms-rotation-" then (transformKMSKeyRotation raw).toList
+  else if filename.startsWith "kms-rotation-" then
+    let keyId := entityFromFilename filename "kms-rotation-"
+    (transformKMSKeyRotation raw ("arn:aws:kms:us-east-1:" ++ accountId ++ ":key/" ++ keyId)).toList
   else if filename.startsWith "kms-key-" then
-    -- kms-key-<uuid>.json is describe-key; extract KeyArn for policy merge
-    (transformKMSKeyPolicy raw).toList
+    let keyId := entityFromFilename filename "kms-key-"
+    let keyArn := "arn:aws:kms:us-east-1:" ++ accountId ++ ":key/" ++ keyId
+    -- kms-key-* can be describe-key (KeyMetadata) or get-key-policy (Policy)
+    let describeAssets := (transformKMSDescribeKey raw).toList
+    let policyAssets := (transformKMSKeyPolicy raw keyArn).toList
+    describeAssets ++ policyAssets
   -- CloudTrail
   else if filename == "cloudtrail_trails.json" then transformCloudTrailTrails raw
+  -- CloudFormation
+  else if filename == "cfn_stacks.json" then transformCloudFormationStacks raw
   -- CloudWatch / Config / Lambda / OpenSearch
   else if filename == "cloudwatch_alarms.json" then transformCloudWatchAlarms raw
   else if filename == "config_recorders.json" then transformConfigRecorders raw accountId
@@ -165,6 +203,35 @@ def main (args : List String) : IO UInt32 := do
     IO.eprintln s!"No assets extracted from {processed + skipped} files"
     return 1
 
+  -- Post-processing: compute escalation paths from user→policy→actions
+  let policyActions : List (String × List String) := merged.filterMap fun a =>
+    if a.assetType == "aws_iam_policy" then
+      let actions := getArr (getObj (getObj a.properties "identity") "policy") "actions"
+      let strs := actions.filterMap fun j => match j with | Json.str s => some s | _ => none
+      some (a.id, strs)
+    else none
+  let principals : List Extract.Escalation.PrincipalPerms := merged.filterMap fun a =>
+    if a.assetType == "aws_iam_user" || a.assetType == "aws_iam_role" then
+      let identity := getObj a.properties "identity"
+      let policyArns := (getArr identity "attached_policy_arns").filterMap fun j =>
+        match j with | Json.str s => some s | _ => none
+      let effectiveActions := policyArns.flatMap fun pArn =>
+        match policyActions.find? (·.1 == pArn) with
+        | some (_, acts) => acts
+        | none => []
+      if effectiveActions.isEmpty then none
+      else
+        let pType := if a.assetType == "aws_iam_user" then "user" else "role"
+        let adminRoleArns := merged.filterMap fun r =>
+          if r.assetType == "aws_iam_role" then
+            let isAdmin := (getOptBool (getObj r.properties "identity") "is_admin_equivalent").getD false
+            if isAdmin then some r.id else none
+          else none
+        some { arn := a.id, principalType := pType, effectiveActions, adminRoleArns }
+    else none
+  let escalationAssets := Extract.Escalation.transformEscalation principals
+  let final := mergeAssets (merged ++ escalationAssets)
+
   -- Write two snapshots (one hour apart, for duration-based controls)
   let t1 := "2026-01-01T12:00:00Z"
   let t2 := "2026-01-01T13:00:00Z"
@@ -172,8 +239,8 @@ def main (args : List String) : IO UInt32 := do
   -- Ensure output directory exists
   IO.FS.createDirAll outputDir
 
-  let snap1 := buildSnapshot merged t1
-  let snap2 := buildSnapshot merged t2
+  let snap1 := buildSnapshot final t1
+  let snap2 := buildSnapshot final t2
 
   let path1 := s!"{outputDir}/2026-01-01T120000Z.json"
   let path2 := s!"{outputDir}/2026-01-01T130000Z.json"
@@ -181,7 +248,7 @@ def main (args : List String) : IO UInt32 := do
   IO.FS.writeFile path1 (snap1.pretty 2 ++ "\n")
   IO.FS.writeFile path2 (snap2.pretty 2 ++ "\n")
 
-  IO.println s!"Extracted {merged.length} assets from {processed} files ({skipped} skipped)"
+  IO.println s!"Extracted {final.length} assets from {processed} files ({skipped} skipped)"
   IO.println s!"Wrote: {path1}"
   IO.println s!"Wrote: {path2}"
   return 0

@@ -17,17 +17,17 @@ def transformKMSKeys (raw : Json) : List ObsAsset :=
         ])]))
 
 -- kms-key-rotation.jq: self-describing (KeyId = full ARN)
-def transformKMSKeyRotation (raw : Json) : Option ObsAsset :=
-  match getOptStr raw "KeyId" with
-  | none => none
-  | some keyId =>
+def transformKMSKeyRotation (raw : Json) (keyArn : String := "") : Option ObsAsset :=
+  let k := match getOptStr raw "KeyId" with | some s => s | none => keyArn
+  if k.isEmpty then none
+  else
     let enabled := (getOptBool raw "KeyRotationEnabled").getD false
-    some (awsAsset keyId "aws_kms_key"
+    some (awsAsset k "aws_kms_key"
       (Json.mkObj [("cryptography", Json.mkObj [
         ("key_rotation_enabled", .bool enabled)
       ])]))
 
--- kms-key-policy.jq: annotated with KeyArn, Policy is a JSON string
+-- kms-key-policy.jq: Policy is a JSON string; KeyArn from JSON or filename
 private def hasWildcardPrincipal (statements : List Json) : Bool :=
   statements.any fun stmt =>
     let principal := getObj stmt "Principal"
@@ -38,10 +38,10 @@ private def hasWildcardPrincipal (statements : List Json) : Bool :=
             | .ok arr => arr.toList.any (· == .str "*")
             | .error _ => false)
 
-def transformKMSKeyPolicy (raw : Json) : Option ObsAsset :=
-  match getOptStr raw "KeyArn" with
-  | none => none
-  | some arn =>
+def transformKMSKeyPolicy (raw : Json) (keyArn : String := "") : Option ObsAsset :=
+  let arn := match getOptStr raw "KeyArn" with | some s => s | none => keyArn
+  if arn.isEmpty then none
+  else
     let policyStr := (getOptStr raw "Policy").getD "{}"
     let statements := match Json.parse policyStr with
       | .ok policyJson =>
@@ -57,6 +57,21 @@ def transformKMSKeyPolicy (raw : Json) : Option ObsAsset :=
         ("policy", Json.mkObj [
           ("has_wildcard_principal", .bool (hasWildcardPrincipal statements))
         ])
+      ])]))
+
+-- kms-key-describe: describe-key output → extract ARN for base key enrichment
+def transformKMSDescribeKey (raw : Json) : Option ObsAsset :=
+  let km := getObj raw "KeyMetadata"
+  match getOptStr km "Arn" with
+  | none => none
+  | some arn =>
+    let enabled := (getOptBool km "Enabled").getD true
+    let mgr := (getOptStr km "KeyManager").getD ""
+    some (awsAsset arn "aws_kms_key"
+      (Json.mkObj [("cryptography", Json.mkObj [
+        ("kind", .str "key"),
+        ("enabled", .bool enabled),
+        ("key_manager", .str mgr)
       ])]))
 
 -- Self-tests

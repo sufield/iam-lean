@@ -102,6 +102,21 @@ def transformOpenSearchDomain (raw : Json) : Option ObsAsset :=
         ])
       ])]))
 
+-- cfn-stacks.jq: .Stacks[] → one aws_cloudformation_stack per stack
+def transformCloudFormationStacks (raw : Json) : List ObsAsset :=
+  (getArr raw "Stacks").filterMap fun stack =>
+    match getOptStr stack "StackId" with
+    | none => none
+    | some arn =>
+      let termProtection := (getOptBool stack "EnableTerminationProtection").getD false
+      some (awsAsset arn "aws_cloudformation_stack"
+        (Json.mkObj [("infrastructure", Json.mkObj [
+          ("kind", .str "stack"),
+          ("stack", Json.mkObj [
+            ("termination_protection", .bool termProtection)
+          ])
+        ])]))
+
 -- Self-tests
 
 #guard

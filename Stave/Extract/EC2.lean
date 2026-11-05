@@ -110,6 +110,40 @@ def transformEC2SecurityGroups (raw : Json) : List ObsAsset :=
           ])
         ])]))
 
+-- sg-rules: per-SG rules from describe-security-group-rules → compute property
+private def isBroadCidrNonHttp (rules : List Json) : Bool :=
+  rules.any fun rule =>
+    let isIngress := !(getOptBool rule "IsEgress").getD true
+    let proto := (getOptStr rule "IpProtocol").getD ""
+    let cidr := (getOptStr rule "CidrIpv4").getD ""
+    let fromPort := (getOptNat rule "FromPort").getD 0
+    let toPort := (getOptNat rule "ToPort").getD 0
+    isIngress && (cidr == "0.0.0.0/0") &&
+    (proto == "-1" ||
+     (proto == "tcp" && !(fromPort == 80 && toPort == 80) && !(fromPort == 443 && toPort == 443)))
+
+private def hasHighRiskUnrestricted (rules : List Json) : Bool :=
+  rules.any fun rule =>
+    let isIngress := !(getOptBool rule "IsEgress").getD true
+    let cidr := (getOptStr rule "CidrIpv4").getD ""
+    let fromPort := (getOptNat rule "FromPort").getD 0
+    let toPort := (getOptNat rule "ToPort").getD 0
+    isIngress && (cidr == "0.0.0.0/0") &&
+    fromPort == toPort && highRiskPorts.contains fromPort
+
+def transformEC2SGRules (raw : Json) (sgArn : String) : Option ObsAsset :=
+  if sgArn.isEmpty then none
+  else
+    let rules := getArr raw "SecurityGroupRules"
+    some (awsAsset sgArn "aws_ec2_security_group"
+      (Json.mkObj [("compute", Json.mkObj [
+        ("kind", .str "security_group"),
+        ("inbound_rules", Json.mkObj [
+          ("broad_cidr_non_http", .bool (isBroadCidrNonHttp rules)),
+          ("high_risk_ports_unrestricted", .bool (hasHighRiskUnrestricted rules))
+        ])
+      ])]))
+
 -- Self-tests
 
 #guard
