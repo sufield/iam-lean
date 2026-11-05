@@ -204,21 +204,41 @@ def main (args : List String) : IO UInt32 := do
     return 1
 
   -- Post-processing: compute escalation paths from user→policy→actions
+  -- Collect actions from both managed policies (by ARN) and inline policies (by principal name in ARN)
   let policyActions : List (String × List String) := merged.filterMap fun a =>
     if a.assetType == "aws_iam_policy" then
       let actions := getArr (getObj (getObj a.properties "identity") "policy") "actions"
       let strs := actions.filterMap fun j => match j with | Json.str s => some s | _ => none
-      some (a.id, strs)
+      if strs.isEmpty then none else some (a.id, strs)
     else none
+  -- Extract inline policy owner: arn:aws:iam::ACCT:inline-policy/PRINCIPAL/POLICY → PRINCIPAL
+  let inlinePolicyOwner (policyArn : String) : Option String :=
+    let parts := policyArn.splitOn ":inline-policy/"
+    match parts with
+    | [_, rest] => (rest.splitOn "/").head?
+    | _ => none
   let principals : List Extract.Escalation.PrincipalPerms := merged.filterMap fun a =>
     if a.assetType == "aws_iam_user" || a.assetType == "aws_iam_role" then
       let identity := getObj a.properties "identity"
-      let policyArns := (getArr identity "attached_policy_arns").filterMap fun j =>
+      -- Name from identity, or extract from ARN (arn:…:user/NAME or arn:…:role/NAME)
+      let principalName := match getOptStr identity "name" with
+        | some n => n
+        | none => match (a.id.splitOn "/").getLast? with
+          | some n => n
+          | none => ""
+      -- Actions from attached managed policies
+      let attachedArns := (getArr identity "attached_policy_arns").filterMap fun j =>
         match j with | Json.str s => some s | _ => none
-      let effectiveActions := policyArns.flatMap fun pArn =>
+      let managedActions := attachedArns.flatMap fun pArn =>
         match policyActions.find? (·.1 == pArn) with
         | some (_, acts) => acts
         | none => []
+      -- Actions from inline policies (matched by principal name in ARN)
+      let inlineActions := policyActions.flatMap fun (pArn, acts) =>
+        match inlinePolicyOwner pArn with
+        | some owner => if owner == principalName then acts else []
+        | none => []
+      let effectiveActions := managedActions ++ inlineActions
       if effectiveActions.isEmpty then none
       else
         let pType := if a.assetType == "aws_iam_user" then "user" else "role"

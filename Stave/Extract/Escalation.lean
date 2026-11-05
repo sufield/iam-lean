@@ -1,30 +1,50 @@
 import Stave.Extract.Asset
 
 /-! Privilege escalation extractor — pattern-match IAM permissions against
-10 known escalation vectors. Pure function over already-collected IAM data.
-Produces properties.identity.escalation.* for CTL.IAM.ESCALATE/POLICY controls. -/
+28 known escalation vectors. Pure function over already-collected IAM data.
+Produces properties.identity.escalation.<vector_key>.present for per-vector
+CTL.IAM.ESCALATE controls. -/
 
 open Lean (Json)
 
 namespace Extract.Escalation
 
-/-- A known escalation vector with required permissions. -/
+/-- A known escalation vector with required permissions and the snake_case
+    property key that controls check (e.g. "create_policy_version"). -/
 structure EscalationVector where
-  name : String
+  propertyKey : String
   requiredActions : List String
   deriving BEq
 
 def knownVectors : List EscalationVector := [
-  { name := "PassRoleToLambda",     requiredActions := ["iam:PassRole", "lambda:CreateFunction", "lambda:InvokeFunction"] },
-  { name := "CreatePolicyVersion",  requiredActions := ["iam:CreatePolicyVersion"] },
-  { name := "AttachRolePolicy",     requiredActions := ["iam:AttachRolePolicy"] },
-  { name := "CreateAccessKey",      requiredActions := ["iam:CreateAccessKey"] },
-  { name := "AssumeRoleChain",      requiredActions := ["sts:AssumeRole"] },
-  { name := "UpdateLoginProfile",   requiredActions := ["iam:UpdateLoginProfile"] },
-  { name := "EC2RunWithRole",       requiredActions := ["ec2:RunInstances", "iam:PassRole"] },
-  { name := "GlueDevEndpoint",      requiredActions := ["glue:CreateDevEndpoint", "iam:PassRole"] },
-  { name := "SageMakerNotebook",    requiredActions := ["sagemaker:CreateNotebookInstance", "iam:PassRole"] },
-  { name := "CloudFormationRole",   requiredActions := ["cloudformation:CreateStack", "iam:PassRole"] }
+  { propertyKey := "create_policy_version",    requiredActions := ["iam:CreatePolicyVersion"] },
+  { propertyKey := "attach_role_policy",       requiredActions := ["iam:AttachRolePolicy"] },
+  { propertyKey := "create_access_key",        requiredActions := ["iam:CreateAccessKey"] },
+  { propertyKey := "update_login_profile",     requiredActions := ["iam:UpdateLoginProfile"] },
+  { propertyKey := "create_login_profile",     requiredActions := ["iam:CreateLoginProfile"] },
+  { propertyKey := "attach_user_policy_self",  requiredActions := ["iam:AttachUserPolicy"] },
+  { propertyKey := "attach_group_policy",      requiredActions := ["iam:AttachGroupPolicy"] },
+  { propertyKey := "put_user_policy_self",     requiredActions := ["iam:PutUserPolicy"] },
+  { propertyKey := "put_group_policy",         requiredActions := ["iam:PutGroupPolicy"] },
+  { propertyKey := "put_role_policy",          requiredActions := ["iam:PutRolePolicy"] },
+  { propertyKey := "add_user_to_group",        requiredActions := ["iam:AddUserToGroup"] },
+  { propertyKey := "update_trust_policy",      requiredActions := ["iam:UpdateAssumeRolePolicy"] },
+  { propertyKey := "editlambda",               requiredActions := ["lambda:UpdateFunctionCode"] },
+  { propertyKey := "updatedevendpoint",        requiredActions := ["glue:UpdateDevEndpoint"] },
+  { propertyKey := "passrole_createfunction",  requiredActions := ["lambda:CreateFunction", "iam:PassRole"] },
+  { propertyKey := "passrole_runinstances",    requiredActions := ["ec2:RunInstances", "iam:PassRole"] },
+  { propertyKey := "passrole_createdevendpoint", requiredActions := ["glue:CreateDevEndpoint", "iam:PassRole"] },
+  { propertyKey := "passrole_createnotebook",  requiredActions := ["sagemaker:CreateNotebookInstance", "iam:PassRole"] },
+  { propertyKey := "passrole_createstack",     requiredActions := ["cloudformation:CreateStack", "iam:PassRole"] },
+  { propertyKey := "passrole_createpipeline",  requiredActions := ["datapipeline:CreatePipeline", "iam:PassRole"] },
+  { propertyKey := "passrole_createprocessingjob", requiredActions := ["sagemaker:CreateProcessingJob", "iam:PassRole"] },
+  { propertyKey := "passrole_createtrainingjob",   requiredActions := ["sagemaker:CreateTrainingJob", "iam:PassRole"] },
+  { propertyKey := "passrole_sendcommand",     requiredActions := ["ssm:SendCommand"] },
+  { propertyKey := "ssm_startsession",         requiredActions := ["ssm:StartSession"] },
+  { propertyKey := "confused_cfn_update",      requiredActions := ["cloudformation:UpdateStack"] },
+  { propertyKey := "startbuild_source_write",  requiredActions := ["codebuild:StartBuild", "iam:PassRole"] },
+  { propertyKey := "send_ssh_public_key",      requiredActions := ["ec2-instance-connect:SendSSHPublicKey"] },
+  { propertyKey := "sagemaker_presigned_url",  requiredActions := ["sagemaker:CreatePresignedNotebookInstanceUrl"] }
 ]
 
 private def strToLower (s : String) : String :=
@@ -42,26 +62,6 @@ def actionsMatch (effective : List String) (required : List String) : Bool :=
     effLower.contains reqLower ||
     effLower.contains (svc ++ ":*")
 
-/-- Extract action strings from a policy statement. -/
-def extractActions (stmt : Json) : List String :=
-  match stmt.getObjValAs? String "Action" with
-  | .ok s => [s]
-  | .error _ => match stmt.getObjValAs? (Array Json) "Action" with
-    | .ok arr => arr.toList.filterMap fun j =>
-      match j with | Json.str s => some s | _ => none
-    | .error _ => []
-
-/-- Collect all Allow actions from a policy document. -/
-def collectAllowActions (policyDoc : Json) : List String :=
-  let stmts := match policyDoc.getObjValAs? (Array Json) "Statement" with
-    | .ok arr => arr.toList
-    | .error _ => match policyDoc.getObjValAs? Json "Statement" with
-      | .ok s => [s]
-      | .error _ => []
-  stmts.flatMap fun stmt =>
-    if getOptStr stmt "Effect" == some "Allow" then extractActions stmt
-    else []
-
 /-- A principal with its ARN, type, and effective actions. -/
 structure PrincipalPerms where
   arn : String
@@ -71,27 +71,22 @@ structure PrincipalPerms where
   deriving BEq
 
 /-- Find escalation vectors a principal can exploit. -/
-def findEscalations (p : PrincipalPerms) : List (EscalationVector × Option String) :=
-  knownVectors.filterMap fun v =>
-    if actionsMatch p.effectiveActions v.requiredActions then
-      let targetAdmin := p.adminRoleArns.head?
-      some (v, targetAdmin)
-    else none
+def findEscalations (p : PrincipalPerms) : List EscalationVector :=
+  knownVectors.filter fun v =>
+    actionsMatch p.effectiveActions v.requiredActions
 
-/-- Transform a list of principals into escalation observations. -/
+/-- Transform a list of principals into escalation observations.
+    Each matching vector produces a separate asset; deep-merge by ID
+    combines them into one escalation object per principal. -/
 def transformEscalation (principals : List PrincipalPerms) : List ObsAsset :=
   principals.flatMap fun p =>
     let hits := findEscalations p
-    hits.map fun (vector, targetAdmin) =>
+    hits.map fun vector =>
       awsAsset p.arn ("aws_iam_" ++ p.principalType)
         (Json.mkObj [("identity", Json.mkObj [
           ("kind", .str p.principalType),
           ("escalation", Json.mkObj [
-            ("can_escalate_to_admin", .bool true),
-            ("escalation_vector", .str vector.name),
-            ("steps", Json.arr (vector.requiredActions.map Json.str).toArray),
-            ("target_admin_role", match targetAdmin with | some r => .str r | none => .null),
-            ("step_count", .num vector.requiredActions.length)
+            (vector.propertyKey, Json.mkObj [("present", .bool true)])
           ])
         ])])
 
@@ -105,11 +100,9 @@ open Extract.Escalation in
 open Extract.Escalation in
 #guard actionsMatch ["s3:GetObject"] ["iam:PassRole"] == false
 
--- Wildcard covers everything
 open Extract.Escalation in
 #guard actionsMatch ["*"] ["iam:PassRole", "lambda:CreateFunction"] == true
 
--- Service wildcard
 open Extract.Escalation in
 #guard actionsMatch ["iam:*", "lambda:*"] ["iam:PassRole", "lambda:CreateFunction"] == true
 
@@ -122,7 +115,7 @@ open Extract.Escalation in
     adminRoleArns := []
   }
   match findEscalations p with
-  | [(v, _)] => v.name == "CreatePolicyVersion"
+  | [v] => v.propertyKey == "create_policy_version"
   | _ => false
 
 open Extract.Escalation in
@@ -134,3 +127,31 @@ open Extract.Escalation in
     adminRoleArns := []
   }
   (findEscalations p).isEmpty
+
+-- Multiple vectors match
+open Extract.Escalation in
+#guard
+  let p : PrincipalPerms := {
+    arn := "arn:aws:iam::123:user/multi"
+    principalType := "user"
+    effectiveActions := ["iam:CreateAccessKey", "iam:UpdateLoginProfile"]
+    adminRoleArns := []
+  }
+  let hits := findEscalations p
+  hits.length == 2
+
+-- Per-vector output format
+open Extract.Escalation in
+#guard
+  let p : PrincipalPerms := {
+    arn := "arn:aws:iam::123:user/dev"
+    principalType := "user"
+    effectiveActions := ["iam:CreatePolicyVersion"]
+    adminRoleArns := []
+  }
+  match transformEscalation [p] with
+  | [a] =>
+    let esc := getObj (getObj a.properties "identity") "escalation"
+    let sub := getObj esc "create_policy_version"
+    (getOptBool sub "present").getD false
+  | _ => false

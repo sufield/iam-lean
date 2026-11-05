@@ -228,13 +228,15 @@ def transformIAMInlinePolicy (raw : Json) (account : String) : Option ObsAsset :
           ("resource", getObj na "Resource")
         ]
       | none => Json.mkObj [("has_not_action", .bool false)]
+    let actions := extractPolicyActions stmts
     some (awsAsset
       ("arn:aws:iam::" ++ account ++ ":inline-policy/" ++ principal ++ "/" ++ policyName)
       "aws_iam_policy"
       (Json.mkObj [("identity", Json.mkObj [
         ("kind", .str "policy"),
         ("policy", Json.mkObj [
-          ("shadow_logic", shadowLogic)
+          ("shadow_logic", shadowLogic),
+          ("actions", Json.arr (actions.map Json.str).toArray)
         ])
       ])]))
 
