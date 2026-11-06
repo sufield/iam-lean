@@ -227,10 +227,15 @@ def main (args : List String) : IO UInt32 := do
           | some n => n
           | none => ""
       -- Actions from attached managed policies
+      -- Match by policy name suffix because AWS-managed policies use
+      -- arn:aws:iam::aws:policy/Name but we store them as arn:aws:iam::<acct>:policy/Name
+      let policyNameOf (arn : String) : String :=
+        match (arn.splitOn "/").getLast? with | some n => n | none => arn
       let attachedArns := (getArr identity "attached_policy_arns").filterMap fun j =>
         match j with | Json.str s => some s | _ => none
       let managedActions := attachedArns.flatMap fun pArn =>
-        match policyActions.find? (·.1 == pArn) with
+        let pName := policyNameOf pArn
+        match policyActions.find? (fun (storedArn, _) => policyNameOf storedArn == pName) with
         | some (_, acts) => acts
         | none => []
       -- Actions from inline policies (matched by principal name in ARN)

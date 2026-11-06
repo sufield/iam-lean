@@ -115,13 +115,16 @@ def transformIAMUserAttachedPolicies (raw : Json) (userArn : String := "") : Opt
       ])]))
 
 -- iam-managed-policy-doc: get-policy-version output → extract policy actions
+-- Only extracts actions from Allow statements; Deny statements are excluded.
 private def extractPolicyActions (stmts : List Json) : List String :=
   stmts.flatMap fun stmt =>
-    let actions := match getObj stmt "Action" with
+    let effect := (getOptStr stmt "Effect").getD ""
+    if effect != "Allow" then []
+    else
+      match getObj stmt "Action" with
       | Json.arr a => a.toList.filterMap fun j => match j with | Json.str s => some s | _ => none
       | Json.str s => [s]
       | _ => []
-    actions
 
 private def isAdminPolicy (stmts : List Json) : Bool :=
   stmts.any fun stmt =>
