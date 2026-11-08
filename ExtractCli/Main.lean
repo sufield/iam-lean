@@ -256,6 +256,13 @@ def main (args : List String) : IO UInt32 := do
     else none
   let escalationAssets := Extract.Escalation.transformEscalation principals
   let final := mergeAssets (merged ++ escalationAssets)
+  let invalid := final.filter (!·.structurallyValid)
+  if !invalid.isEmpty then
+    IO.eprintln s!"Validation failed: {invalid.length} invalid asset(s)"
+    for a in invalid do
+      IO.eprintln s!"  id={a.id} type={a.assetType} vendor={a.vendor}"
+    IO.eprintln "Fix the input files and re-run."
+    return 1
 
   -- Write two snapshots (one hour apart, for duration-based controls)
   let t1 := "2026-01-01T12:00:00Z"
