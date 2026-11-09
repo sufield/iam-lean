@@ -31,13 +31,15 @@ def transformS3Encryption (raw : Json) (bucket : String := "") : Option ObsAsset
       | none => .null
     let algo := match getOptStr enc "SSEAlgorithm" with | some a => a | none => "none"
     let kmsKey := match getOptStr enc "KMSMasterKeyID" with | some k => Json.str k | none => .null
+    let atRestEnabled := algo != "none"
     some (awsAsset
       ("arn:aws:s3:::" ++ b)
       "aws_s3_bucket"
       (Json.mkObj [("storage", Json.mkObj [
         ("encryption", Json.mkObj [
           ("algorithm", .str algo),
-          ("kms_key_id", kmsKey)
+          ("kms_key_id", kmsKey),
+          ("at_rest_enabled", .bool atRestEnabled)
         ])
       ])]))
 
@@ -112,6 +114,43 @@ def transformS3Logging (raw : Json) (bucket : String := "") : Option ObsAsset :=
       (Json.mkObj [("storage", Json.mkObj [
         ("logging", Json.mkObj [
           ("enabled", .bool (loggingEnabled != .null))
+        ])
+      ])]))
+
+-- s3-policy: per-bucket policy → derive in_transit_enforced
+-- Checks for a Deny statement with Condition.Bool["aws:SecureTransport"] == "false"
+def transformS3BucketPolicy (raw : Json) (bucket : String := "") : Option ObsAsset :=
+  let b := match getOptStr raw "Bucket" with | some s => s | none => bucket
+  if b.isEmpty then none
+  else
+    let stmts := getArr raw "Statement"
+    let hasTlsDeny := stmts.any fun stmt =>
+      let effect := (getOptStr stmt "Effect").getD ""
+      let condBool := getObj (getObj stmt "Condition") "Bool"
+      let secureTransport := (getOptStr condBool "aws:SecureTransport").getD ""
+      effect == "Deny" && secureTransport == "false"
+    some (awsAsset
+      ("arn:aws:s3:::" ++ b)
+      "aws_s3_bucket"
+      (Json.mkObj [("storage", Json.mkObj [
+        ("encryption", Json.mkObj [
+          ("in_transit_enforced", .bool hasTlsDeny)
+        ])
+      ])]))
+
+-- s3-lifecycle: per-bucket lifecycle config → merge asset
+def transformS3Lifecycle (raw : Json) (bucket : String := "") : Option ObsAsset :=
+  let b := match getOptStr raw "Bucket" with | some s => s | none => bucket
+  if b.isEmpty then none
+  else
+    let rules := getArr raw "Rules"
+    let hasLifecycle := !rules.isEmpty
+    some (awsAsset
+      ("arn:aws:s3:::" ++ b)
+      "aws_s3_bucket"
+      (Json.mkObj [("storage", Json.mkObj [
+        ("lifecycle", Json.mkObj [
+          ("enabled", .bool hasLifecycle)
         ])
       ])]))
 

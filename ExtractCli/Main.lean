@@ -85,6 +85,10 @@ def extractFile (filename : String) (raw : Json) (accountId : String) : List Obs
     (transformS3Versioning raw (entityFromFilename filename "s3-versioning-")).toList
   else if filename.startsWith "s3-logging-" then
     (transformS3Logging raw (entityFromFilename filename "s3-logging-")).toList
+  else if filename.startsWith "s3-policy-" then
+    (transformS3BucketPolicy raw (entityFromFilename filename "s3-policy-")).toList
+  else if filename.startsWith "s3-lifecycle-" then
+    (transformS3Lifecycle raw (entityFromFilename filename "s3-lifecycle-")).toList
   -- IAM
   else if filename == "iam_roles.json" then transformIAMRoles raw
   else if filename == "iam_users.json" then transformIAMUsers raw
@@ -255,7 +259,43 @@ def main (args : List String) : IO UInt32 := do
         some { arn := a.id, principalType := pType, effectiveActions, adminRoleArns }
     else none
   let escalationAssets := Extract.Escalation.transformEscalation principals
-  let final := mergeAssets (merged ++ escalationAssets)
+
+  -- Derive has_wildcard_s3_resource on user/role assets from policy actions+resource
+  -- A principal has wildcard S3 resource if any of its policies grants s3:* on Resource: *
+  let wildcardS3Assets : List ObsAsset := merged.filterMap fun a =>
+    if a.assetType == "aws_iam_user" || a.assetType == "aws_iam_role" then
+      let kind := if a.assetType == "aws_iam_user" then "user" else "role"
+      let identity := getObj a.properties "identity"
+      let principalName := match getOptStr identity "name" with
+        | some n => n
+        | none => match (a.id.splitOn "/").getLast? with
+          | some n => n
+          | none => ""
+      -- Check inline policies for s3:* + Resource: *
+      let hasWildcard := merged.any fun p =>
+        if p.assetType != "aws_iam_policy" then false
+        else
+          let ownerMatch := match (p.id.splitOn ":inline-policy/") with
+            | [_, rest] => (rest.splitOn "/").head? == some principalName
+            | _ => false
+          if !ownerMatch then false
+          else
+            let policy := getObj (getObj p.properties "identity") "policy"
+            let actions := (getArr policy "actions").filterMap fun j =>
+              match j with | .str s => some s | _ => none
+            actions.any fun act => act == "s3:*" || act == "*"
+      if hasWildcard then
+        some (awsAsset a.id a.assetType
+          (Json.mkObj [("identity", Json.mkObj [
+            ("kind", .str kind),
+            ("policies", Json.mkObj [
+              ("has_wildcard_s3_resource", .bool true)
+            ])
+          ])]))
+      else none
+    else none
+
+  let final := mergeAssets (merged ++ escalationAssets ++ wildcardS3Assets)
   let invalid := final.filter (!·.structurallyValid)
   if !invalid.isEmpty then
     IO.eprintln s!"Validation failed: {invalid.length} invalid asset(s)"
