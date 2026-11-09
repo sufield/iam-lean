@@ -3,6 +3,8 @@ import Stave.Extract.IAM
 import Stave.Extract.EC2
 import Stave.Extract.KMS
 import Stave.Extract.CloudTrail
+import Stave.Extract.RDS
+import Stave.Extract.VPC
 import Stave.Extract.Misc
 import Stave.Extract.Escalation
 
@@ -132,6 +134,12 @@ def extractFile (filename : String) (raw : Json) (accountId : String) : List Obs
     describeAssets ++ policyAssets
   -- CloudTrail
   else if filename == "cloudtrail_trails.json" then transformCloudTrailTrails raw
+  -- RDS
+  else if filename == "rds_instances.json" then transformRDSInstances raw accountId
+  else if filename.startsWith "rds-instance-" then transformRDSInstances raw accountId
+  -- VPC
+  else if filename == "vpc_flow_logs.json" then transformVPCFlowLogs raw accountId
+  else if filename.startsWith "flow-logs-" then transformVPCFlowLogs raw accountId
   -- CloudFormation
   else if filename == "cfn_stacks.json" then transformCloudFormationStacks raw
   -- CloudWatch / Config / Lambda / OpenSearch
