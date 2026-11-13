@@ -1,7 +1,7 @@
 import Stave.Extract.Asset
 
 /-! Privilege escalation extractor — pattern-match IAM permissions against
-28 known escalation vectors. Pure function over already-collected IAM data.
+30 known escalation vectors. Pure function over already-collected IAM data.
 Produces properties.identity.escalation.<vector_key>.present for per-vector
 CTL.IAM.ESCALATE controls. -/
 
@@ -18,6 +18,7 @@ structure EscalationVector where
 
 def knownVectors : List EscalationVector := [
   { propertyKey := "create_policy_version",    requiredActions := ["iam:CreatePolicyVersion"] },
+  { propertyKey := "create_policy_version",    requiredActions := ["iam:SetDefaultPolicyVersion"] },
   { propertyKey := "attach_role_policy",       requiredActions := ["iam:AttachRolePolicy"] },
   { propertyKey := "create_access_key",        requiredActions := ["iam:CreateAccessKey"] },
   { propertyKey := "update_login_profile",     requiredActions := ["iam:UpdateLoginProfile"] },
@@ -44,7 +45,8 @@ def knownVectors : List EscalationVector := [
   { propertyKey := "confused_cfn_update",      requiredActions := ["cloudformation:UpdateStack"] },
   { propertyKey := "startbuild_source_write",  requiredActions := ["codebuild:StartBuild", "iam:PassRole"] },
   { propertyKey := "send_ssh_public_key",      requiredActions := ["ec2-instance-connect:SendSSHPublicKey"] },
-  { propertyKey := "sagemaker_presigned_url",  requiredActions := ["sagemaker:CreatePresignedNotebookInstanceUrl"] }
+  { propertyKey := "sagemaker_presigned_url",  requiredActions := ["sagemaker:CreatePresignedNotebookInstanceUrl"] },
+  { propertyKey := "assume_role",              requiredActions := ["sts:AssumeRole"] }
 ]
 
 private def strToLower (s : String) : String :=
@@ -139,6 +141,32 @@ open Extract.Escalation in
   }
   let hits := findEscalations p
   hits.length == 2
+
+-- SetDefaultPolicyVersion triggers create_policy_version
+open Extract.Escalation in
+#guard
+  let p : PrincipalPerms := {
+    arn := "arn:aws:iam::123:user/privesc2"
+    principalType := "user"
+    effectiveActions := ["iam:SetDefaultPolicyVersion"]
+    adminRoleArns := []
+  }
+  match findEscalations p with
+  | [v] => v.propertyKey == "create_policy_version"
+  | _ => false
+
+-- AssumeRole vector
+open Extract.Escalation in
+#guard
+  let p : PrincipalPerms := {
+    arn := "arn:aws:iam::123:user/assumer"
+    principalType := "user"
+    effectiveActions := ["sts:AssumeRole"]
+    adminRoleArns := []
+  }
+  match findEscalations p with
+  | [v] => v.propertyKey == "assume_role"
+  | _ => false
 
 -- Per-vector output format
 open Extract.Escalation in
