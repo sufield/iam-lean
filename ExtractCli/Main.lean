@@ -108,8 +108,12 @@ def extractFile (filename : String) (raw : Json) (accountId : String) : List Obs
   else if filename.startsWith "role-inline-" then
     let roleName := entityFromFilename filename "role-inline-"
     (transformIAMRoleInline raw ("arn:aws:iam::" ++ accountId ++ ":role/" ++ roleName)).toList
-  else if filename.startsWith "group-inline-" then (transformIAMGroupInline raw accountId).toList
-  else if filename.startsWith "user-inline-" then (transformIAMUserInline raw accountId).toList
+  else if filename.startsWith "group-inline-" then
+    let groupName := entityFromFilename filename "group-inline-"
+    (transformIAMGroupInline raw accountId ("arn:aws:iam::" ++ accountId ++ ":group/" ++ groupName)).toList
+  else if filename.startsWith "user-inline-" then
+    let userName := entityFromFilename filename "user-inline-"
+    (transformIAMUserInline raw accountId ("arn:aws:iam::" ++ accountId ++ ":user/" ++ userName)).toList
   else if filename.startsWith "user-policy-" || filename.startsWith "group-policy-" || filename.startsWith "role-policy-" then
     (transformIAMInlinePolicy raw accountId).toList
   else if filename.startsWith "policy-doc-" then
@@ -306,7 +310,37 @@ def main (args : List String) : IO UInt32 := do
       else none
     else none
 
-  let final := mergeAssets (merged ++ escalationAssets ++ wildcardS3Assets)
+  -- Derive has_admin_policy on group assets from their inline policy actions
+  let groupAdminAssets : List ObsAsset := merged.filterMap fun a =>
+    if a.assetType != "aws_iam_group" then none
+    else
+      let groupName := match getOptStr (getObj (getObj a.properties "identity") "group") "name" with
+        | some n => n
+        | none => match (a.id.splitOn "/").getLast? with
+          | some n => n
+          | none => ""
+      if groupName.isEmpty then none
+      else
+        let hasAdmin := merged.any fun p =>
+          if p.assetType != "aws_iam_policy" then false
+          else
+            let ownerMatch := match (p.id.splitOn ":inline-policy/") with
+              | [_, rest] => (rest.splitOn "/").head? == some groupName
+              | _ => false
+            if !ownerMatch then false
+            else
+              let policy := getObj (getObj p.properties "identity") "policy"
+              let actions := (getArr policy "actions").filterMap fun j =>
+                match j with | .str s => some s | _ => none
+              actions.any (· == "*")
+        if hasAdmin then
+          some (awsAsset a.id "aws_iam_group"
+            (Json.mkObj [("identity", Json.mkObj [("group", Json.mkObj [
+              ("has_admin_policy", .bool true)
+            ])])]))
+        else none
+
+  let final := mergeAssets (merged ++ escalationAssets ++ wildcardS3Assets ++ groupAdminAssets)
   let invalid := final.filter (!·.structurallyValid)
   if !invalid.isEmpty then
     IO.eprintln s!"Validation failed: {invalid.length} invalid asset(s)"

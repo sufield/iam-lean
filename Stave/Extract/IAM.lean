@@ -20,6 +20,18 @@ private def extractTrustedServices (trustDoc : Json) : List String :=
       | .error _ => []
   List.eraseDups services
 
+-- Principal: "*" or Principal: {"AWS": "*"} → wildcard trust
+private def hasWildcardPrincipal (trustDoc : Json) : Bool :=
+  let stmts := getArr trustDoc "Statement"
+  stmts.any fun stmt =>
+    let principal := getObj stmt "Principal"
+    principal == Json.str "*" ||
+    (match principal.getObjValAs? String "AWS" with
+     | .ok s => s == "*"
+     | .error _ => match principal.getObjValAs? (Array Json) "AWS" with
+       | .ok arr => arr.toList.any fun j => j == Json.str "*"
+       | .error _ => false)
+
 def transformIAMRoles (raw : Json) : List ObsAsset :=
   (getArr raw "Roles").filterMap fun role =>
     match getOptStr role "RoleName", getOptStr role "Arn" with
@@ -28,11 +40,15 @@ def transformIAMRoles (raw : Json) : List ObsAsset :=
       else
         let trustDoc := getObj role "AssumeRolePolicyDocument"
         let services := extractTrustedServices trustDoc
+        let wildcardTrust := hasWildcardPrincipal trustDoc
         some (awsAsset arn "aws_iam_role"
           (Json.mkObj [("identity", Json.mkObj [
             ("kind", .str "role"),
             ("name", .str name),
-            ("trusted_services", Json.arr (services.map Json.str).toArray)
+            ("trusted_services", Json.arr (services.map Json.str).toArray),
+            ("trust_policy", Json.mkObj [
+              ("has_wildcard_principal", .bool wildcardTrust)
+            ])
           ])]))
     | _, _ => none
 
@@ -173,27 +189,33 @@ def transformIAMRoleTags (raw : Json) (roleArn : String := "") : Option ObsAsset
       ])]))
 
 -- iam-group-inline.jq: GroupName-keyed → has_inline_policies
-def transformIAMGroupInline (raw : Json) (account : String) : Option ObsAsset :=
-  match getOptStr raw "GroupName" with
-  | none => none
-  | some name =>
+-- groupArn fallback: list-group-policies output lacks GroupName.
+def transformIAMGroupInline (raw : Json) (account : String) (groupArn : String := "") : Option ObsAsset :=
+  let name := match getOptStr raw "GroupName" with
+    | some n => n
+    | none => if groupArn.isEmpty then "" else
+      match (groupArn.splitOn "/").getLast? with | some n => n | none => ""
+  let arn := if groupArn.isEmpty then "arn:aws:iam::" ++ account ++ ":group/" ++ name else groupArn
+  if name.isEmpty then none
+  else
     let hasInline := (getArr raw "PolicyNames").length > 0
-    some (awsAsset
-      ("arn:aws:iam::" ++ account ++ ":group/" ++ name)
-      "aws_iam_group"
+    some (awsAsset arn "aws_iam_group"
       (Json.mkObj [("identity", Json.mkObj [("group", Json.mkObj [
         ("has_inline_policies", .bool hasInline)
       ])])]))
 
 -- iam-user-inline.jq: UserName-keyed → has_inline_policies
-def transformIAMUserInline (raw : Json) (account : String) : Option ObsAsset :=
-  match getOptStr raw "UserName" with
-  | none => none
-  | some name =>
+-- userArn fallback: list-user-policies output lacks UserName.
+def transformIAMUserInline (raw : Json) (account : String) (userArn : String := "") : Option ObsAsset :=
+  let name := match getOptStr raw "UserName" with
+    | some n => n
+    | none => if userArn.isEmpty then "" else
+      match (userArn.splitOn "/").getLast? with | some n => n | none => ""
+  let arn := if userArn.isEmpty then "arn:aws:iam::" ++ account ++ ":user/" ++ name else userArn
+  if name.isEmpty then none
+  else
     let hasInline := (getArr raw "PolicyNames").length > 0
-    some (awsAsset
-      ("arn:aws:iam::" ++ account ++ ":user/" ++ name)
-      "aws_iam_user"
+    some (awsAsset arn "aws_iam_user"
       (Json.mkObj [("identity", Json.mkObj [("policies", Json.mkObj [
         ("has_inline_policies", .bool hasInline)
       ])])]))
