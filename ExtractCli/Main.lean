@@ -105,6 +105,9 @@ def extractFile (filename : String) (raw : Json) (accountId : String) : List Obs
   else if filename.startsWith "user-attached-" then
     let userName := entityFromFilename filename "user-attached-"
     (transformIAMUserAttachedPolicies raw ("arn:aws:iam::" ++ accountId ++ ":user/" ++ userName)).toList
+  else if filename.startsWith "role-inline-" then
+    let roleName := entityFromFilename filename "role-inline-"
+    (transformIAMRoleInline raw ("arn:aws:iam::" ++ accountId ++ ":role/" ++ roleName)).toList
   else if filename.startsWith "group-inline-" then (transformIAMGroupInline raw accountId).toList
   else if filename.startsWith "user-inline-" then (transformIAMUserInline raw accountId).toList
   else if filename.startsWith "user-policy-" || filename.startsWith "group-policy-" || filename.startsWith "role-policy-" then

@@ -198,6 +198,15 @@ def transformIAMUserInline (raw : Json) (account : String) : Option ObsAsset :=
         ("has_inline_policies", .bool hasInline)
       ])])]))
 
+-- role-inline: has_inline_policies on the role asset.
+-- The file has only {"PolicyNames":[…]}; the role ARN comes from the caller.
+def transformIAMRoleInline (raw : Json) (roleArn : String) : Option ObsAsset :=
+  let hasInline := (getArr raw "PolicyNames").length > 0
+  some (awsAsset roleArn "aws_iam_role"
+    (Json.mkObj [("identity", Json.mkObj [("policies", Json.mkObj [
+      ("has_inline_policies", .bool hasInline)
+    ])])]))
+
 -- iam-inline-policy.jq: inline policy document → shadow_logic signal
 private def findNotAction (stmts : List Json) : Option Json :=
   stmts.find? fun stmt => (getObj stmt "NotAction") != .null
