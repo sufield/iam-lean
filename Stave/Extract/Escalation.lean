@@ -1,7 +1,7 @@
 import Stave.Extract.Asset
 
 /-! Privilege escalation extractor — pattern-match IAM permissions against
-30 known escalation vectors. Pure function over already-collected IAM data.
+31 known escalation vectors. Pure function over already-collected IAM data.
 Produces properties.identity.escalation.<vector_key>.present for per-vector
 CTL.IAM.ESCALATE controls. -/
 
@@ -35,6 +35,7 @@ def knownVectors : List EscalationVector := [
   { propertyKey := "passrole_createfunction",  requiredActions := ["lambda:CreateFunction", "iam:PassRole"] },
   { propertyKey := "passrole_runinstances",    requiredActions := ["ec2:RunInstances", "iam:PassRole"] },
   { propertyKey := "passrole_createdevendpoint", requiredActions := ["glue:CreateDevEndpoint", "iam:PassRole"] },
+  { propertyKey := "passrole_createjob",         requiredActions := ["glue:CreateJob", "iam:PassRole"] },
   { propertyKey := "passrole_createnotebook",  requiredActions := ["sagemaker:CreateNotebookInstance", "iam:PassRole"] },
   { propertyKey := "passrole_createstack",     requiredActions := ["cloudformation:CreateStack", "iam:PassRole"] },
   { propertyKey := "passrole_createpipeline",  requiredActions := ["datapipeline:CreatePipeline", "iam:PassRole"] },
@@ -167,6 +168,18 @@ open Extract.Escalation in
   match findEscalations p with
   | [v] => v.propertyKey == "assume_role"
   | _ => false
+
+-- Glue CreateJob + PassRole vector
+open Extract.Escalation in
+#guard
+  let p : PrincipalPerms := {
+    arn := "arn:aws:iam::123:user/glue-user"
+    principalType := "user"
+    effectiveActions := ["glue:CreateJob", "iam:PassRole"]
+    adminRoleArns := []
+  }
+  let hits := findEscalations p
+  hits.any fun v => v.propertyKey == "passrole_createjob"
 
 -- Per-vector output format
 open Extract.Escalation in
