@@ -64,7 +64,7 @@ private def isInternet (perm : Json) : Bool :=
   (getArr perm "IpRanges").any fun r =>
     getOptStr r "CidrIp" == some "0.0.0.0/0"
 
-private def highRiskPorts : List Nat := [22, 3389, 3306, 5432, 1433, 1521, 27017, 2049]
+private def highRiskPorts : List Nat := [21, 23, 22, 80, 3389, 3306, 5432, 1433, 1521, 27017, 2049]
 
 private def parseCidrMask (cidr : String) : Option Nat :=
   let parts := cidr.splitOn "/"
@@ -99,6 +99,9 @@ def transformEC2SecurityGroups (raw : Json) : List ObsAsset :=
             | some n => n < 32
             | none => false
           | none => false
+      let hasUnrestrictedIngress := perms.any fun r =>
+        let proto := (getOptStr r "IpProtocol").getD ""
+        (proto == "tcp" || proto == "udp" || proto == "-1") && isInternet r
       some (awsAsset arn "aws_ec2_security_group"
         (Json.mkObj [("network", Json.mkObj [
           ("kind", .str "security_group"),
@@ -106,7 +109,8 @@ def transformEC2SecurityGroups (raw : Json) : List ObsAsset :=
             ("has_broad_port_range", .bool hasBroadPortRange),
             ("high_risk_ports_exposed", .bool highRiskExposed),
             ("icmp_all_types_from_internet", .bool icmpAll),
-            ("has_broad_cidr", .bool hasBroadCidr)
+            ("has_broad_cidr", .bool hasBroadCidr),
+            ("has_unrestricted_ingress", .bool hasUnrestrictedIngress)
           ])
         ])]))
 
